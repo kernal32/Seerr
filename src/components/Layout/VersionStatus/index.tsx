@@ -1,3 +1,4 @@
+import { isCustomCommitTag } from '@app/utils/customCommitTag';
 import defineMessages from '@app/utils/defineMessages';
 import {
   ArrowUpCircleIcon,
@@ -28,7 +29,7 @@ const VersionStatus = ({ onClick }: VersionStatusProps) => {
     refreshInterval: 60 * 1000,
   });
 
-  if (!data) {
+  if (!data || isCustomCommitTag(data.commitTag)) {
     return null;
   }
 

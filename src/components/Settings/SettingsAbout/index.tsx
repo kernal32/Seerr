@@ -6,6 +6,7 @@ import PageTitle from '@app/components/Common/PageTitle';
 import Releases from '@app/components/Settings/SettingsAbout/Releases';
 import globalMessages from '@app/i18n/globalMessages';
 import ErrorPage from '@app/pages/_error';
+import { isCustomCommitTag } from '@app/utils/customCommitTag';
 import defineMessages from '@app/utils/defineMessages';
 import type {
   SettingsAboutResponse,
@@ -59,7 +60,8 @@ const SettingsAbout = () => {
       />
       <div className="section">
         <List title={intl.formatMessage(messages.aboutseerr)}>
-          {data.version.startsWith('develop-') && (
+          {data.version.startsWith('develop-') &&
+            !isCustomCommitTag(status?.commitTag) && (
             <Alert
               title={intl.formatMessage(messages.runningDevelop, {
                 code: (msg: React.ReactNode) => (
@@ -75,7 +77,7 @@ const SettingsAbout = () => {
             <code className="truncate">
               {data.version.replace('develop-', '')}
             </code>
-            {status?.commitTag !== 'local' &&
+            {!isCustomCommitTag(status?.commitTag) &&
               (status?.updateAvailable ? (
                 <a
                   href={

@@ -57,7 +57,11 @@ router.get<unknown, StatusResponse>('/status', async (req, res) => {
   let updateAvailable = false;
   let commitsBehind = 0;
 
-  if (currentVersion.startsWith('develop-') && commitTag !== 'local') {
+  if (
+    currentVersion.startsWith('develop-') &&
+    commitTag !== 'local' &&
+    commitTag !== 'private'
+  ) {
     const commits = await githubApi.getSeerrCommits();
 
     if (commits.length) {

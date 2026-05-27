@@ -1,7 +1,9 @@
+import Button from '@app/components/Common/Button';
 import Header from '@app/components/Common/Header';
 import PageTitle from '@app/components/Common/PageTitle';
 import DiscoverReadingPlaceholder from '@app/components/Discover/DiscoverReadingPlaceholder';
 import ErrorPage from '@app/pages/_error';
+import globalMessages from '@app/i18n/globalMessages';
 import type { ReadingMediaResult } from '@server/models/ReadingMedia';
 import axios from 'axios';
 import Link from 'next/link';
@@ -19,6 +21,7 @@ export interface DiscoverReadingMediaProps {
   messages: {
     title: MessageDescriptor;
     searchplaceholder: MessageDescriptor;
+    search: MessageDescriptor;
     noresults: MessageDescriptor;
     metadataUnavailable: MessageDescriptor;
     downloaderUnavailable: MessageDescriptor;
@@ -94,7 +97,7 @@ const DiscoverReadingMedia = ({
       <div className="mb-4">
         <Header>{title}</Header>
         <form
-          className="mt-4"
+          className="mt-4 flex max-w-2xl flex-col gap-2 sm:flex-row sm:items-stretch"
           onSubmit={(event) => {
             event.preventDefault();
             const formData = new FormData(event.currentTarget);
@@ -106,24 +109,31 @@ const DiscoverReadingMedia = ({
           }}
         >
           <input
-            className="w-full max-w-xl rounded-md border border-gray-600 bg-gray-800 px-4 py-2 text-white"
+            className="min-w-0 flex-1 rounded-md border border-gray-600 bg-gray-800 px-4 py-2 text-white"
             defaultValue={query ?? ''}
             name="query"
             placeholder={intl.formatMessage(messages.searchplaceholder)}
             type="search"
           />
+          <Button buttonType="primary" type="submit">
+            {intl.formatMessage(messages.search)}
+          </Button>
         </form>
       </div>
-      {query && isLoading && <p className="text-gray-400">Loading…</p>}
+      {query && isLoading && (
+        <p className="text-gray-400">
+          {intl.formatMessage(globalMessages.loading)}
+        </p>
+      )}
       {query && !isLoading && results.length === 0 && (
         <p className="text-gray-400">
           {intl.formatMessage(messages.noresults)}
         </p>
       )}
       {query && results.length > 0 && (
-        <ul className="cards-vertical">
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {results.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="min-w-0">
               <Link
                 href={{
                   pathname: `${detailPathPrefix}/${encodeURIComponent(item.id)}`,
@@ -131,27 +141,31 @@ const DiscoverReadingMedia = ({
                     ? { authorId: item.foreignAuthorId }
                     : {},
                 }}
-                className="block rounded-lg bg-gray-800 p-4 transition hover:bg-gray-700"
+                className="flex h-28 overflow-hidden rounded-lg bg-gray-800 p-3 transition hover:bg-gray-700"
               >
-                <div className="flex gap-4">
-                  {item.coverUrl && (
-                    <img
-                      alt=""
-                      className="h-24 w-16 rounded object-cover"
-                      src={item.coverUrl}
-                    />
-                  )}
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">
-                      {item.title}
-                    </h3>
-                    {item.subtitle && (
-                      <p className="text-sm text-gray-400">{item.subtitle}</p>
-                    )}
-                    {item.year && (
-                      <p className="text-sm text-gray-500">{item.year}</p>
-                    )}
+                {item.coverUrl ? (
+                  <img
+                    alt=""
+                    className="h-full w-14 flex-shrink-0 rounded object-cover"
+                    src={item.coverUrl}
+                  />
+                ) : (
+                  <div className="flex h-full w-14 flex-shrink-0 items-center justify-center rounded bg-gray-700 text-xs text-gray-500">
+                    —
                   </div>
+                )}
+                <div className="ml-3 flex min-w-0 flex-1 flex-col justify-center">
+                  <h3 className="truncate text-sm font-semibold text-white">
+                    {item.title}
+                  </h3>
+                  {item.subtitle && (
+                    <p className="truncate text-xs text-gray-400">
+                      {item.subtitle}
+                    </p>
+                  )}
+                  {item.year && (
+                    <p className="mt-1 text-xs text-gray-500">{item.year}</p>
+                  )}
                 </div>
               </Link>
             </li>

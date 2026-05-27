@@ -5,6 +5,7 @@ import defineMessages from '@app/utils/defineMessages';
 const messages = defineMessages('components.Discover.DiscoverBooks', {
   discoverbooks: 'Books',
   searchplaceholder: 'Search for books…',
+  search: 'Search',
   noresults: 'No books found.',
   metadataUnavailable:
     'Book metadata search is temporarily unavailable. Add a Hardcover API token on your book downloader in Settings, or fix Bindery/OpenLibrary access.',
@@ -25,6 +26,7 @@ const DiscoverBooks = () => {
       messages={{
         title: messages.discoverbooks,
         searchplaceholder: messages.searchplaceholder,
+        search: messages.search,
         noresults: messages.noresults,
         metadataUnavailable: messages.metadataUnavailable,
         downloaderUnavailable: messages.downloaderUnavailable,
