@@ -6,6 +6,7 @@ import Button from '@app/components/Common/Button';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import Modal from '@app/components/Common/Modal';
 import PageTitle from '@app/components/Common/PageTitle';
+import BookDownloaderModal from '@app/components/Settings/BookDownloaderModal';
 import OverrideRuleModal from '@app/components/Settings/OverrideRule/OverrideRuleModal';
 import OverrideRuleTiles from '@app/components/Settings/OverrideRule/OverrideRuleTiles';
 import RadarrModal from '@app/components/Settings/RadarrModal';
@@ -16,7 +17,11 @@ import { Transition } from '@headlessui/react';
 import { PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/solid';
 import type OverrideRule from '@server/entity/OverrideRule';
 import type { OverrideRuleResultsResponse } from '@server/interfaces/api/overrideRuleInterfaces';
-import type { RadarrSettings, SonarrSettings } from '@server/lib/settings';
+import type {
+  BookDownloaderSettings,
+  RadarrSettings,
+  SonarrSettings,
+} from '@server/lib/settings';
 import axios from 'axios';
 import { Fragment, useState } from 'react';
 import { useIntl } from 'react-intl';
@@ -37,6 +42,10 @@ const messages = defineMessages('components.Settings', {
   activeProfile: 'Active Profile',
   addradarr: 'Add Radarr Server',
   addsonarr: 'Add Sonarr Server',
+  bookdownloadersettings: 'Book Downloaders',
+  addbookdownloader: 'Add Book Downloader',
+  noDefaultBookServer:
+    'At least one default book downloader must be configured for book requests to work.',
   noDefaultServer:
     'At least one {serverType} server must be marked as default in order for {mediaType} requests to be processed.',
   noDefaultNon4kServer:
@@ -215,6 +224,11 @@ const SettingsServices = () => {
     error: sonarrError,
     mutate: revalidateSonarr,
   } = useSWR<SonarrSettings[]>('/api/v1/settings/sonarr');
+  const {
+    data: bookDownloaderData,
+    error: bookDownloaderError,
+    mutate: revalidateBookDownloaders,
+  } = useSWR<BookDownloaderSettings[]>('/api/v1/settings/bookDownloader');
   const { data: rules, mutate: revalidate } =
     useSWR<OverrideRuleResultsResponse>('/api/v1/overrideRule');
   const [editRadarrModal, setEditRadarrModal] = useState<{
@@ -231,9 +245,16 @@ const SettingsServices = () => {
     open: false,
     sonarr: null,
   });
+  const [editBookDownloaderModal, setEditBookDownloaderModal] = useState<{
+    open: boolean;
+    downloader: BookDownloaderSettings | null;
+  }>({
+    open: false,
+    downloader: null,
+  });
   const [deleteServerModal, setDeleteServerModal] = useState<{
     open: boolean;
-    type: 'radarr' | 'sonarr';
+    type: 'radarr' | 'sonarr' | 'bookDownloader';
     serverId: number | null;
   }>({
     open: false,
@@ -255,6 +276,7 @@ const SettingsServices = () => {
     setDeleteServerModal({ open: false, serverId: null, type: 'radarr' });
     revalidateRadarr();
     revalidateSonarr();
+    revalidateBookDownloaders();
     mutate('/api/v1/settings/public');
   };
 
@@ -287,6 +309,19 @@ const SettingsServices = () => {
             revalidateRadarr();
             mutate('/api/v1/settings/public');
             setEditRadarrModal({ open: false, radarr: null });
+          }}
+        />
+      )}
+      {editBookDownloaderModal.open && (
+        <BookDownloaderModal
+          downloader={editBookDownloaderModal.downloader}
+          onClose={() =>
+            setEditBookDownloaderModal({ open: false, downloader: null })
+          }
+          onSave={() => {
+            revalidateBookDownloaders();
+            mutate('/api/v1/settings/public');
+            setEditBookDownloaderModal({ open: false, downloader: null });
           }}
         />
       )}
@@ -492,6 +527,81 @@ const SettingsServices = () => {
                   >
                     <PlusIcon />
                     <span>{intl.formatMessage(messages.addsonarr)}</span>
+                  </Button>
+                </div>
+              </li>
+            </ul>
+          </>
+        )}
+      </div>
+      <div className="mb-6 mt-10">
+        <h3 className="heading">
+          {intl.formatMessage(messages.bookdownloadersettings)}
+        </h3>
+        <p className="description">
+          {intl.formatMessage(messages.serviceSettingsDescription, {
+            serverType: 'Bindery',
+          })}
+        </p>
+      </div>
+      <div className="section">
+        {!bookDownloaderData && !bookDownloaderError && <LoadingSpinner />}
+        {(bookDownloaderData || bookDownloaderError) && (
+          <>
+            {bookDownloaderError && (
+              <Alert title="Unable to load book downloader settings. Restart the dev server if you recently updated Bookarr." />
+            )}
+            {bookDownloaderData &&
+              bookDownloaderData.length > 0 &&
+              !bookDownloaderData.some(
+                (downloader) =>
+                  downloader.isDefault && downloader.mediaSubtype === 'book'
+              ) && (
+                <Alert
+                  title={intl.formatMessage(messages.noDefaultBookServer)}
+                />
+              )}
+            <ul className="grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+              {(bookDownloaderData ?? []).map((downloader) => (
+                <ServerInstance
+                  key={`book-downloader-${downloader.id}`}
+                  name={downloader.name}
+                  hostname={downloader.hostname}
+                  port={downloader.port}
+                  profileName={downloader.activeProfileName}
+                  isSSL={downloader.useSsl}
+                  isDefault={downloader.isDefault}
+                  externalUrl={downloader.externalUrl}
+                  onEdit={() =>
+                    setEditBookDownloaderModal({
+                      open: true,
+                      downloader,
+                    })
+                  }
+                  onDelete={() =>
+                    setDeleteServerModal({
+                      open: true,
+                      serverId: downloader.id,
+                      type: 'bookDownloader',
+                    })
+                  }
+                />
+              ))}
+              <li className="col-span-1 h-32 rounded-lg border-2 border-dashed border-gray-400 shadow sm:h-44">
+                <div className="flex h-full w-full items-center justify-center">
+                  <Button
+                    buttonType="ghost"
+                    onClick={() =>
+                      setEditBookDownloaderModal({
+                        open: true,
+                        downloader: null,
+                      })
+                    }
+                  >
+                    <PlusIcon />
+                    <span>
+                      {intl.formatMessage(messages.addbookdownloader)}
+                    </span>
                   </Button>
                 </div>
               </li>

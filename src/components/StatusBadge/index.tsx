@@ -6,6 +6,7 @@ import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
+import type { MediaType } from '@server/constants/media';
 import { MediaStatus } from '@server/constants/media';
 import { MediaServerType } from '@server/constants/server';
 import type { DownloadingItem } from '@server/lib/downloadtracker';
@@ -29,7 +30,7 @@ interface StatusBadgeProps {
   plexUrl?: string;
   serviceUrl?: string;
   tmdbId?: number;
-  mediaType?: 'movie' | 'tv';
+  mediaType?: MediaType;
   title?: string | string[];
   statusLabelOverride?: string;
 }

@@ -28,8 +28,10 @@ import { getAppVersion, getCommitTag } from '@server/utils/appVersion';
 import restartFlag from '@server/utils/restartFlag';
 import { isPerson } from '@server/utils/typeHelpers';
 import { Router } from 'express';
+import audiobookRoutes from './audiobook';
 import authRoutes from './auth';
 import blocklistRoutes from './blocklist';
+import bookRoutes from './book';
 import collectionRoutes from './collection';
 import discoverRoutes, { createTmdbWithRegionLanguage } from './discover';
 import issueRoutes from './issue';
@@ -164,6 +166,8 @@ router.use(
   blocklistRoutes
 );
 router.use('/movie', isAuthenticated(), movieRoutes);
+router.use('/book', isAuthenticated(), bookRoutes);
+router.use('/audiobook', isAuthenticated(), audiobookRoutes);
 router.use('/tv', isAuthenticated(), tvRoutes);
 router.use('/media', isAuthenticated(), mediaRoutes);
 router.use('/person', isAuthenticated(), personRoutes);

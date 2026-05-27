@@ -103,6 +103,31 @@ export interface SonarrSettings extends DVRSettings {
   monitorNewItems: 'all' | 'none';
 }
 
+export type BookDownloaderProvider = 'bindery' | 'librarr' | 'readarr';
+export type BookDownloaderSubtype = 'book' | 'audiobook';
+
+export interface BookDownloaderSettings extends DVRSettings {
+  provider: BookDownloaderProvider;
+  mediaSubtype: BookDownloaderSubtype;
+  hardcoverApiToken?: string;
+}
+
+export interface ComicDownloaderSettings extends DVRSettings {
+  comicVineApiKey?: string;
+}
+
+export interface MagazineDownloaderSettings {
+  id: number;
+  name: string;
+  hostname: string;
+  port: number;
+  apiKey: string;
+  useSsl: boolean;
+  baseUrl?: string;
+  isDefault: boolean;
+  externalUrl?: string;
+}
+
 interface Quota {
   quotaLimit?: number;
   quotaDays?: number;
@@ -197,6 +222,8 @@ interface FullPublicSettings extends PublicSettings {
   mediaServerLogin: boolean;
   movie4kEnabled: boolean;
   series4kEnabled: boolean;
+  booksEnabled: boolean;
+  audiobooksEnabled: boolean;
   discoverRegion: string;
   streamingRegion: string;
   originalLanguage: string;
@@ -379,6 +406,9 @@ export interface AllSettings {
   tautulli: TautulliSettings;
   radarr: RadarrSettings[];
   sonarr: SonarrSettings[];
+  bookDownloaders: BookDownloaderSettings[];
+  comicDownloaders: ComicDownloaderSettings[];
+  magazineDownloaders: MagazineDownloaderSettings[];
   public: PublicSettings;
   notifications: NotificationSettings;
   jobs: Record<JobId, JobSettings>;
@@ -403,7 +433,7 @@ class Settings {
       vapidPublic: '',
       main: {
         apiKey: '',
-        applicationTitle: 'Seerr',
+        applicationTitle: 'Bookarr',
         applicationUrl: '',
         cacheImages: false,
         defaultPermissions: Permission.REQUEST,
@@ -455,6 +485,9 @@ class Settings {
       },
       radarr: [],
       sonarr: [],
+      bookDownloaders: [],
+      comicDownloaders: [],
+      magazineDownloaders: [],
       public: {
         initialized: false,
       },
@@ -693,6 +726,30 @@ class Settings {
     this.data.sonarr = data;
   }
 
+  get bookDownloaders(): BookDownloaderSettings[] {
+    return this.data.bookDownloaders;
+  }
+
+  set bookDownloaders(data: BookDownloaderSettings[]) {
+    this.data.bookDownloaders = data;
+  }
+
+  get comicDownloaders(): ComicDownloaderSettings[] {
+    return this.data.comicDownloaders;
+  }
+
+  set comicDownloaders(data: ComicDownloaderSettings[]) {
+    this.data.comicDownloaders = data;
+  }
+
+  get magazineDownloaders(): MagazineDownloaderSettings[] {
+    return this.data.magazineDownloaders;
+  }
+
+  set magazineDownloaders(data: MagazineDownloaderSettings[]) {
+    this.data.magazineDownloaders = data;
+  }
+
   get public(): PublicSettings {
     return this.data.public;
   }
@@ -717,6 +774,13 @@ class Settings {
       ),
       series4kEnabled: this.data.sonarr.some(
         (sonarr) => sonarr.is4k && sonarr.isDefault
+      ),
+      booksEnabled: this.data.bookDownloaders.some(
+        (downloader) => !downloader.is4k && downloader.mediaSubtype === 'book'
+      ),
+      audiobooksEnabled: this.data.bookDownloaders.some(
+        (downloader) =>
+          !downloader.is4k && downloader.mediaSubtype === 'audiobook'
       ),
       discoverRegion: this.data.main.discoverRegion,
       streamingRegion: this.data.main.streamingRegion,

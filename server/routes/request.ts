@@ -13,6 +13,7 @@ import {
   MediaRequest,
   NoSeasonsAvailableError,
   QuotaRestrictedError,
+  ReadingMediaNotSupportedError,
   RequestPermissionError,
 } from '@server/entity/MediaRequest';
 import SeasonRequest from '@server/entity/SeasonRequest';
@@ -173,6 +174,16 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
             type: MediaType.TV,
           });
           break;
+        case 'book':
+          query = query.andWhere('request.type = :type', {
+            type: MediaType.BOOK,
+          });
+          break;
+        case 'audiobook':
+          query = query.andWhere('request.type = :type', {
+            type: MediaType.AUDIOBOOK,
+          });
+          break;
       }
 
       const [requests, requestCount] = await query
@@ -234,6 +245,12 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
                 ?.profiles?.find((profile) => profile.id === r.profileId)?.name,
             };
           }
+          default: {
+            return {
+              ...r,
+              profileName: undefined,
+            };
+          }
         }
       });
 
@@ -261,6 +278,12 @@ requestRoutes.get<Record<string, unknown>, RequestResultsResponse>(
                     server.id ===
                     (r.is4k ? r.media.serviceId4k : r.media.serviceId)
                 ),
+              };
+            }
+            default: {
+              return {
+                ...r,
+                canRemove: false,
               };
             }
           }
@@ -328,6 +351,8 @@ requestRoutes.post<never, MediaRequest, MediaRequestBody>(
           return next({ status: 202, message: error.message });
         case BlocklistedMediaError:
           return next({ status: 403, message: error.message });
+        case ReadingMediaNotSupportedError:
+          return next({ status: 501, message: error.message });
         default:
           return next({ status: 500, message: error.message });
       }

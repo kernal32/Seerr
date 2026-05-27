@@ -3,6 +3,7 @@ import Badge from '@app/components/Common/Badge';
 import Button from '@app/components/Common/Button';
 import CachedImage from '@app/components/Common/CachedImage';
 import ConfirmButton from '@app/components/Common/ConfirmButton';
+import { menuMessages } from '@app/components/Layout/Sidebar';
 import RequestModal from '@app/components/RequestModal';
 import StatusBadge from '@app/components/StatusBadge';
 import useDeepLinks from '@app/hooks/useDeepLinks';
@@ -11,6 +12,15 @@ import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
 import { refreshIntervalHelper } from '@app/utils/refreshIntervalHelper';
+import {
+  getRequestDetailPath,
+  getRequestDisplayTitle,
+  getRequestDisplayYear,
+  getRequestPosterSrc,
+  getRequestTitleApiUrl,
+  isReadingMediaRequestType,
+  type RequestTitleData,
+} from '@app/utils/requestMediaTitle';
 import {
   ArrowPathIcon,
   CheckIcon,
@@ -28,7 +38,7 @@ import axios from 'axios';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useInView } from 'react-intersection-observer';
-import { FormattedRelativeTime, useIntl } from 'react-intl';
+import { FormattedRelativeTime, useIntl, type IntlShape } from 'react-intl';
 import useSWR, { mutate } from 'swr';
 
 const messages = defineMessages('components.RequestList.RequestItem', {
@@ -44,14 +54,29 @@ const messages = defineMessages('components.RequestList.RequestItem', {
   deleterequest: 'Delete Request',
   cancelRequest: 'Cancel Request',
   tmdbid: 'TMDB ID',
+  metadataid: 'Metadata ID',
   tvdbid: 'TheTVDB ID',
   unknowntitle: 'Unknown Title',
   removearr: 'Remove from {arr}',
   profileName: 'Profile',
 });
 
-const isMovie = (movie: MovieDetails | TvDetails): movie is MovieDetails => {
-  return (movie as MovieDetails).title !== undefined;
+const getRequestMediaTypeLabel = (
+  type: string | undefined,
+  intl: IntlShape
+) => {
+  switch (type) {
+    case 'movie':
+      return intl.formatMessage(globalMessages.movie);
+    case 'tv':
+      return intl.formatMessage(globalMessages.tvshow);
+    case 'book':
+      return intl.formatMessage(menuMessages.browsebooks);
+    case 'audiobook':
+      return intl.formatMessage(menuMessages.browseaudiobooks);
+    default:
+      return intl.formatMessage(globalMessages.request);
+  }
 };
 
 interface RequestItemErrorProps {
@@ -85,34 +110,43 @@ const RequestItemError = ({
         <div className="flex w-full flex-col justify-center overflow-hidden pl-4 pr-4 sm:pr-0 xl:w-7/12 2xl:w-2/3">
           <div className="flex text-lg font-bold text-white xl:text-xl">
             {intl.formatMessage(messages.mediaerror, {
-              mediaType: intl.formatMessage(
-                requestData?.type
-                  ? requestData?.type === 'movie'
-                    ? globalMessages.movie
-                    : globalMessages.tvshow
-                  : globalMessages.request
-              ),
+              mediaType: getRequestMediaTypeLabel(requestData?.type, intl),
             })}
           </div>
           {requestData && hasPermission(Permission.MANAGE_REQUESTS) && (
             <>
-              <div className="card-field">
-                <span className="card-field-name">
-                  {intl.formatMessage(messages.tmdbid)}
-                </span>
-                <span className="flex truncate text-sm text-gray-300">
-                  {requestData.media.tmdbId}
-                </span>
-              </div>
-              {requestData.media.tvdbId && (
-                <div className="card-field">
-                  <span className="card-field-name">
-                    {intl.formatMessage(messages.tvdbid)}
-                  </span>
-                  <span className="flex truncate text-sm text-gray-300">
-                    {requestData?.media.tvdbId}
-                  </span>
-                </div>
+              {isReadingMediaRequestType(requestData.type) ? (
+                requestData.media.metadataId && (
+                  <div className="card-field">
+                    <span className="card-field-name">
+                      {intl.formatMessage(messages.metadataid)}
+                    </span>
+                    <span className="flex truncate text-sm text-gray-300">
+                      {requestData.media.metadataId}
+                    </span>
+                  </div>
+                )
+              ) : (
+                <>
+                  <div className="card-field">
+                    <span className="card-field-name">
+                      {intl.formatMessage(messages.tmdbid)}
+                    </span>
+                    <span className="flex truncate text-sm text-gray-300">
+                      {requestData.media.tmdbId}
+                    </span>
+                  </div>
+                  {requestData.media.tvdbId && (
+                    <div className="card-field">
+                      <span className="card-field-name">
+                        {intl.formatMessage(messages.tvdbid)}
+                      </span>
+                      <span className="flex truncate text-sm text-gray-300">
+                        {requestData?.media.tvdbId}
+                      </span>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}
@@ -303,12 +337,9 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
   const intl = useIntl();
   const { user, hasPermission } = useUser();
   const [showEditModal, setShowEditModal] = useState(false);
-  const url =
-    request.type === 'movie'
-      ? `/api/v1/movie/${request.media.tmdbId}`
-      : `/api/v1/tv/${request.media.tmdbId}`;
-  const { data: title, error } = useSWR<MovieDetails | TvDetails>(
-    inView ? url : null
+  const url = getRequestTitleApiUrl(request);
+  const { data: title, error } = useSWR<RequestTitleData>(
+    inView && url ? url : null
   );
   const { data: requestData, mutate: revalidate } = useSWR<
     NonFunctionProperties<MediaRequest>
@@ -407,7 +438,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
       <RequestModal
         show={showEditModal}
         tmdbId={request.media.tmdbId}
-        type={request.type}
+        type={request.type as 'movie' | 'tv'}
         is4k={request.is4k}
         editRequest={request}
         onCancel={() => setShowEditModal(false)}
@@ -417,66 +448,64 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
         }}
       />
       <div className="relative flex w-full flex-col justify-between overflow-hidden rounded-xl bg-gray-800 py-2 text-gray-400 shadow-md ring-1 ring-gray-700 xl:h-28 xl:flex-row">
-        {title.backdropPath && (
-          <div className="absolute inset-0 z-0 w-full bg-cover bg-center xl:w-2/3">
-            <CachedImage
-              type="tmdb"
-              src={`https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${title.backdropPath}`}
-              alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              fill
-            />
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage:
-                  'linear-gradient(90deg, rgba(31, 41, 55, 0.47) 0%, rgba(31, 41, 55, 1) 100%)',
-              }}
-            />
-          </div>
-        )}
+        {title &&
+          !isReadingMediaRequestType(requestData.type) &&
+          (title as MovieDetails | TvDetails).backdropPath && (
+            <div className="absolute inset-0 z-0 w-full bg-cover bg-center xl:w-2/3">
+              <CachedImage
+                type="tmdb"
+                src={`https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${(title as MovieDetails | TvDetails).backdropPath}`}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                fill
+              />
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(90deg, rgba(31, 41, 55, 0.47) 0%, rgba(31, 41, 55, 1) 100%)',
+                }}
+              />
+            </div>
+          )}
         <div className="relative flex w-full flex-col justify-between overflow-hidden sm:flex-row">
           <div className="relative z-10 flex w-full items-center overflow-hidden pl-4 pr-4 sm:pr-0 xl:w-7/12 2xl:w-2/3">
             <Link
-              href={
-                requestData.type === 'movie'
-                  ? `/movie/${requestData.media.tmdbId}`
-                  : `/tv/${requestData.media.tmdbId}`
-              }
+              href={getRequestDetailPath(requestData)}
               className="relative h-auto w-12 flex-shrink-0 scale-100 transform-gpu overflow-hidden rounded-md transition duration-300 hover:scale-105"
             >
-              <CachedImage
-                type="tmdb"
-                src={
-                  title.posterPath
-                    ? `https://image.tmdb.org/t/p/w600_and_h900_bestv2${title.posterPath}`
-                    : '/images/seerr_poster_not_found.png'
-                }
-                alt=""
-                sizes="100vw"
-                style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
-                width={600}
-                height={900}
-              />
+              {isReadingMediaRequestType(requestData.type) ? (
+                <img
+                  alt=""
+                  src={getRequestPosterSrc(requestData.type, title)}
+                  sizes="100vw"
+                  style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
+                  width={600}
+                  height={900}
+                />
+              ) : (
+                <CachedImage
+                  type="tmdb"
+                  src={getRequestPosterSrc(requestData.type, title)}
+                  alt=""
+                  sizes="100vw"
+                  style={{ width: '100%', height: 'auto', objectFit: 'cover' }}
+                  width={600}
+                  height={900}
+                />
+              )}
             </Link>
             <div className="flex flex-col justify-center overflow-hidden pl-2 xl:pl-4">
               <div className="pt-0.5 text-xs font-medium text-white sm:pt-1">
-                {(isMovie(title)
-                  ? title.releaseDate
-                  : title.firstAirDate
-                )?.slice(0, 4)}
+                {getRequestDisplayYear(requestData.type, title)}
               </div>
               <Link
-                href={
-                  requestData.type === 'movie'
-                    ? `/movie/${requestData.media.tmdbId}`
-                    : `/tv/${requestData.media.tmdbId}`
-                }
+                href={getRequestDetailPath(requestData)}
                 className="mr-2 min-w-0 truncate text-lg font-bold text-white hover:underline xl:text-xl"
               >
-                {isMovie(title) ? title.title : title.name}
+                {getRequestDisplayTitle(requestData.type, title)}
               </Link>
-              {!isMovie(title) && request.seasons.length > 0 && (
+              {requestData.type === 'tv' && request.seasons.length > 0 && (
                 <div className="card-field">
                   <span className="card-field-name">
                     {intl.formatMessage(messages.seasons, {
@@ -510,7 +539,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
               ) : requestData.status === MediaRequestStatus.FAILED ? (
                 <Badge
                   badgeType="danger"
-                  href={`/${requestData.type}/${requestData.media.tmdbId}?manage=1`}
+                  href={`${getRequestDetailPath(requestData)}?manage=1`}
                 >
                   {intl.formatMessage(globalMessages.failed)}
                 </Badge>
@@ -519,7 +548,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                   MediaStatus.DELETED ? (
                 <Badge
                   badgeType="warning"
-                  href={`/${requestData.type}/${requestData.media.tmdbId}?manage=1`}
+                  href={`${getRequestDetailPath(requestData)}?manage=1`}
                 >
                   {intl.formatMessage(globalMessages.pending)}
                 </Badge>
@@ -533,7 +562,7 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                       requestData.is4k ? 'downloadStatus4k' : 'downloadStatus'
                     ]
                   }
-                  title={isMovie(title) ? title.title : title.name}
+                  title={getRequestDisplayTitle(requestData.type, title)}
                   inProgress={
                     (
                       requestData.media[
@@ -702,20 +731,23 @@ const RequestItem = ({ request, revalidateList }: RequestItemProps) => {
                   <TrashIcon />
                   <span>{intl.formatMessage(messages.deleterequest)}</span>
                 </ConfirmButton>
-                {request.canRemove && (
-                  <ConfirmButton
-                    onClick={() => deleteMediaFile()}
-                    confirmText={intl.formatMessage(globalMessages.areyousure)}
-                    className="w-full"
-                  >
-                    <TrashIcon />
-                    <span>
-                      {intl.formatMessage(messages.removearr, {
-                        arr: request.type === 'movie' ? 'Radarr' : 'Sonarr',
-                      })}
-                    </span>
-                  </ConfirmButton>
-                )}
+                {request.canRemove &&
+                  !isReadingMediaRequestType(request.type) && (
+                    <ConfirmButton
+                      onClick={() => deleteMediaFile()}
+                      confirmText={intl.formatMessage(
+                        globalMessages.areyousure
+                      )}
+                      className="w-full"
+                    >
+                      <TrashIcon />
+                      <span>
+                        {intl.formatMessage(messages.removearr, {
+                          arr: request.type === 'movie' ? 'Radarr' : 'Sonarr',
+                        })}
+                      </span>
+                    </ConfirmButton>
+                  )}
               </>
             )}
           {requestData.status === MediaRequestStatus.PENDING &&

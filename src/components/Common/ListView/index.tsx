@@ -1,6 +1,7 @@
 import PersonCard from '@app/components/PersonCard';
 import TitleCard from '@app/components/TitleCard';
 import TmdbTitleCard from '@app/components/TitleCard/TmdbTitleCard';
+import { isVideoMediaType } from '@app/constants/media';
 import { Permission, useUser } from '@app/hooks/useUser';
 import useVerticalScroll from '@app/hooks/useVerticalScroll';
 import globalMessages from '@app/i18n/globalMessages';
@@ -51,6 +52,10 @@ const ListView = ({
       )}
       <ul className="cards-vertical">
         {plexItems?.map((title, index) => {
+          if (!isVideoMediaType(title.mediaType)) {
+            return null;
+          }
+
           return (
             <li key={`${title.ratingKey}-${index}`}>
               <TmdbTitleCard

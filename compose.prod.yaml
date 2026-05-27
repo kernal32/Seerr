@@ -1,0 +1,16 @@
+﻿services:
+  seerr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        COMMIT_TAG: private
+    image: seerr-home:local
+    container_name: seerr
+    ports:
+      - "5055:5055"
+    volumes:
+      - /media/config/overseerr:/app/config
+    environment:
+      TZ: Australia/Adelaide
+    restart: unless-stopped

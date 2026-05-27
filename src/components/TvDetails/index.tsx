@@ -501,7 +501,7 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
       <IssueModal
         onCancel={() => setShowIssueModal(false)}
         show={showIssueModal}
-        mediaType="tv"
+        mediaType={MediaType.TV}
         tmdbId={data.id}
       />
       <RequestModal
@@ -516,7 +516,7 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
       />
       <ManageSlideOver
         data={data}
-        mediaType="tv"
+        mediaType={MediaType.TV}
         onClose={() => {
           setShowManager(false);
           router.push({
@@ -552,7 +552,7 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
               title={data.name}
               inProgress={(data.mediaInfo?.downloadStatus ?? []).length > 0}
               tmdbId={data.mediaInfo?.tmdbId}
-              mediaType="tv"
+              mediaType={MediaType.TV}
               plexUrl={plexUrl}
               serviceUrl={data.mediaInfo?.serviceUrl}
             />
@@ -576,7 +576,7 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
                     (data.mediaInfo?.downloadStatus4k ?? []).length > 0
                   }
                   tmdbId={data.mediaInfo?.tmdbId}
-                  mediaType="tv"
+                  mediaType={MediaType.TV}
                   plexUrl={plexUrl4k}
                   serviceUrl={data.mediaInfo?.serviceUrl4k}
                 />
@@ -662,7 +662,7 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
             <PlayButton links={mediaLinks} />
           </div>
           <RequestButton
-            mediaType="tv"
+            mediaType={MediaType.TV}
             onUpdate={() => revalidate()}
             tmdbId={data?.id}
             media={data?.mediaInfo}
@@ -1309,7 +1309,7 @@ const TvDetails = ({ tv }: TvDetailsProps) => {
             )}
             <div className="media-fact">
               <ExternalLinkBlock
-                mediaType="tv"
+                mediaType={MediaType.TV}
                 tmdbId={data.id}
                 tvdbId={data.externalIds.tvdbId}
                 imdbId={data.externalIds.imdbId}

@@ -21,9 +21,9 @@ import {
   MinusCircleIcon,
   StarIcon,
 } from '@heroicons/react/24/outline';
+import type { MediaType } from '@server/constants/media';
 import { MediaStatus } from '@server/constants/media';
 import type { Watchlist } from '@server/entity/Watchlist';
-import type { MediaType } from '@server/models/Search';
 import axios from 'axios';
 import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
@@ -37,7 +37,7 @@ interface TitleCardProps {
   year?: string;
   title: string;
   userScore?: number;
-  mediaType: MediaType;
+  mediaType: MediaType | 'collection' | 'movie' | 'tv';
   status?: MediaStatus;
   canExpand?: boolean;
   inProgress?: boolean;

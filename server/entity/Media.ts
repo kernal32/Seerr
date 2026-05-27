@@ -28,6 +28,7 @@ import Season from './Season';
 
 @Entity()
 @Index(['tmdbId', 'mediaType'])
+@Index(['metadataId', 'mediaType'])
 class Media {
   public static async getRelatedMedia(
     user: User | undefined,
@@ -81,6 +82,60 @@ class Media {
     }
   }
 
+  public static async getMediaByMetadataId(
+    metadataId: string,
+    mediaType: MediaType
+  ): Promise<Media | undefined> {
+    const mediaRepository = getRepository(Media);
+
+    try {
+      const media = await mediaRepository.findOne({
+        where: { metadataId, mediaType },
+        relations: { requests: true, issues: true },
+      });
+
+      return media ?? undefined;
+    } catch (e) {
+      logger.error(e.message);
+      return undefined;
+    }
+  }
+
+  public static async getRelatedMediaByMetadataId(
+    user: User | undefined,
+    items: { metadataId: string; mediaType: string }[]
+  ): Promise<Media[]> {
+    const mediaRepository = getRepository(Media);
+
+    try {
+      if (items.length === 0) {
+        return [];
+      }
+
+      const finalIds = [...new Set(items.map((i) => i.metadataId))];
+
+      const media = await mediaRepository
+        .createQueryBuilder('media')
+        .leftJoinAndSelect(
+          'media.watchlists',
+          'watchlist',
+          'media.id= watchlist.media and watchlist.requestedBy = :userId',
+          { userId: user?.id }
+        )
+        .where('media.metadataId in (:...finalIds)', { finalIds })
+        .getMany();
+
+      return media.filter((m) =>
+        items.some(
+          (i) => i.metadataId === m.metadataId && i.mediaType === m.mediaType
+        )
+      );
+    } catch (e) {
+      logger.error(e.message);
+      return [];
+    }
+  }
+
   @PrimaryGeneratedColumn()
   public id: number;
 
@@ -90,6 +145,10 @@ class Media {
   @Column()
   @Index()
   public tmdbId: number;
+
+  @Column({ nullable: true, type: 'varchar' })
+  @Index()
+  public metadataId?: string | null;
 
   @Column({ unique: true, nullable: true })
   @Index()

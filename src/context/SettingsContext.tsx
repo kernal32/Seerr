@@ -18,6 +18,8 @@ const defaultSettings = {
   mediaServerLogin: true,
   movie4kEnabled: false,
   series4kEnabled: false,
+  booksEnabled: false,
+  audiobooksEnabled: false,
   discoverRegion: '',
   streamingRegion: '',
   originalLanguage: '',

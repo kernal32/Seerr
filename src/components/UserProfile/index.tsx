@@ -6,9 +6,11 @@ import RequestCard from '@app/components/RequestCard';
 import Slider from '@app/components/Slider';
 import TmdbTitleCard from '@app/components/TitleCard/TmdbTitleCard';
 import ProfileHeader from '@app/components/UserProfile/ProfileHeader';
+import { isVideoMediaType } from '@app/constants/media';
 import { Permission, UserType, useUser } from '@app/hooks/useUser';
 import ErrorPage from '@app/pages/_error';
 import defineMessages from '@app/utils/defineMessages';
+import type { RequestTitleData } from '@app/utils/requestMediaTitle';
 import { ArrowRightCircleIcon } from '@heroicons/react/24/outline';
 import type { WatchlistResponse } from '@server/interfaces/api/discoverInterfaces';
 import type {
@@ -40,7 +42,7 @@ const messages = defineMessages('components.UserProfile', {
     'Media added to your <PlexWatchlistSupportLink>Plex Watchlist</PlexWatchlistSupportLink> will appear here.',
 });
 
-type MediaTitle = MovieDetails | TvDetails;
+type MediaTitle = RequestTitleData;
 
 const UserProfile = () => {
   const intl = useIntl();
@@ -135,7 +137,10 @@ const UserProfile = () => {
             key={user.id}
             isDarker
             backgroundImages={Object.values(availableTitles)
-              .filter((media) => media.backdropPath)
+              .filter(
+                (media): media is MovieDetails | TvDetails =>
+                  'backdropPath' in media && !!media.backdropPath
+              )
               .map(
                 (media) =>
                   `https://image.tmdb.org/t/p/w1920_and_h800_multi_faces/${media.backdropPath}`
@@ -364,14 +369,16 @@ const UserProfile = () => {
                   </a>
                 ),
               })}
-              items={watchlistItems?.results.map((item) => (
-                <TmdbTitleCard
-                  id={item.tmdbId}
-                  key={`watchlist-slider-item-${item.ratingKey}`}
-                  tmdbId={item.tmdbId}
-                  type={item.mediaType}
-                />
-              ))}
+              items={watchlistItems?.results
+                .filter((item) => isVideoMediaType(item.mediaType))
+                .map((item) => (
+                  <TmdbTitleCard
+                    id={item.tmdbId}
+                    key={`watchlist-slider-item-${item.ratingKey}`}
+                    tmdbId={item.tmdbId}
+                    type={item.mediaType}
+                  />
+                ))}
             />
           </>
         )}
@@ -389,15 +396,17 @@ const UserProfile = () => {
             <Slider
               sliderKey="media"
               isLoading={!watchData}
-              items={watchData?.recentlyWatched?.map((item) => (
-                <TmdbTitleCard
-                  key={`media-slider-item-${item.id}`}
-                  id={item.id}
-                  tmdbId={item.tmdbId}
-                  tvdbId={item.tvdbId}
-                  type={item.mediaType}
-                />
-              ))}
+              items={watchData?.recentlyWatched
+                ?.filter((item) => isVideoMediaType(item.mediaType))
+                .map((item) => (
+                  <TmdbTitleCard
+                    key={`media-slider-item-${item.id}`}
+                    id={item.id}
+                    tmdbId={item.tmdbId}
+                    tvdbId={item.tvdbId}
+                    type={item.mediaType}
+                  />
+                ))}
             />
           </>
         )}

@@ -1,5 +1,6 @@
 import Slider from '@app/components/Slider';
 import TmdbTitleCard from '@app/components/TitleCard/TmdbTitleCard';
+import { isVideoMediaType } from '@app/constants/media';
 import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
 import type { MediaResultsResponse } from '@server/interfaces/api/mediaInterfaces';
@@ -37,15 +38,17 @@ const RecentlyAddedSlider = () => {
       <Slider
         sliderKey="media"
         isLoading={!media}
-        items={(media?.results ?? []).map((item) => (
-          <TmdbTitleCard
-            key={`media-slider-item-${item.id}`}
-            id={item.id}
-            tmdbId={item.tmdbId}
-            tvdbId={item.tvdbId}
-            type={item.mediaType}
-          />
-        ))}
+        items={(media?.results ?? [])
+          .filter((item) => isVideoMediaType(item.mediaType))
+          .map((item) => (
+            <TmdbTitleCard
+              key={`media-slider-item-${item.id}`}
+              id={item.id}
+              tmdbId={item.tmdbId}
+              tvdbId={item.tvdbId}
+              type={item.mediaType}
+            />
+          ))}
       />
     </>
   );

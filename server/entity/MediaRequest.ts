@@ -1,3 +1,8 @@
+import {
+  getBookDownloaderAdapter,
+  getBookDownloaderById,
+  getDefaultBookDownloader,
+} from '@server/api/downloaders/factory';
 import TheMovieDb from '@server/api/themoviedb';
 import { ANIME_KEYWORD_ID } from '@server/api/themoviedb/constants';
 import type { TmdbKeyword } from '@server/api/themoviedb/interfaces';
@@ -5,6 +10,7 @@ import {
   MediaRequestStatus,
   MediaStatus,
   MediaType,
+  isReadingMediaType,
 } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import OverrideRule from '@server/entity/OverrideRule';
@@ -14,6 +20,7 @@ import { Permission } from '@server/lib/permissions';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
+import { metadataIdToTmdbPlaceholder } from '@server/utils/readingMediaId';
 import { truncate } from 'lodash';
 import {
   AfterInsert,
@@ -37,6 +44,7 @@ export class QuotaRestrictedError extends Error {}
 export class DuplicateMediaRequestError extends Error {}
 export class NoSeasonsAvailableError extends Error {}
 export class BlocklistedMediaError extends Error {}
+export class ReadingMediaNotSupportedError extends Error {}
 
 type MediaRequestOptions = {
   isAutoRequest?: boolean;
@@ -108,6 +116,34 @@ export class MediaRequest {
         `You do not have permission to make ${
           requestBody.is4k ? '4K ' : ''
         }series requests.`
+      );
+    } else if (isReadingMediaType(requestBody.mediaType)) {
+      if (!requestUser.hasPermission(Permission.REQUEST)) {
+        throw new RequestPermissionError(
+          'You do not have permission to make reading media requests.'
+        );
+      }
+
+      if (requestBody.mediaType === MediaType.BOOK) {
+        return MediaRequest.requestBook(
+          requestBody,
+          user,
+          requestUser,
+          options
+        );
+      }
+
+      if (requestBody.mediaType === MediaType.AUDIOBOOK) {
+        return MediaRequest.requestAudiobook(
+          requestBody,
+          user,
+          requestUser,
+          options
+        );
+      }
+
+      throw new ReadingMediaNotSupportedError(
+        'Reading media requests are not available yet.'
       );
     }
 
@@ -521,6 +557,138 @@ export class MediaRequest {
       await requestRepository.save(request);
       return request;
     }
+  }
+
+  private static async requestBook(
+    requestBody: MediaRequestBody,
+    user: User,
+    requestUser: User,
+    options: MediaRequestOptions = {}
+  ): Promise<MediaRequest> {
+    return MediaRequest.requestReadingMedia(
+      requestBody,
+      user,
+      requestUser,
+      options,
+      'book',
+      MediaType.BOOK
+    );
+  }
+
+  private static async requestAudiobook(
+    requestBody: MediaRequestBody,
+    user: User,
+    requestUser: User,
+    options: MediaRequestOptions = {}
+  ): Promise<MediaRequest> {
+    return MediaRequest.requestReadingMedia(
+      requestBody,
+      user,
+      requestUser,
+      options,
+      'audiobook',
+      MediaType.AUDIOBOOK
+    );
+  }
+
+  private static async requestReadingMedia(
+    requestBody: MediaRequestBody,
+    user: User,
+    requestUser: User,
+    options: MediaRequestOptions,
+    mediaSubtype: 'book' | 'audiobook',
+    mediaType: MediaType.BOOK | MediaType.AUDIOBOOK
+  ): Promise<MediaRequest> {
+    const mediaRepository = getRepository(Media);
+    const requestRepository = getRepository(MediaRequest);
+
+    if (!requestBody.metadataId || !requestBody.foreignAuthorId) {
+      throw new RequestPermissionError(
+        'Reading media metadataId and foreignAuthorId are required.'
+      );
+    }
+
+    const defaultDownloader = getDefaultBookDownloader(mediaSubtype);
+
+    if (!defaultDownloader) {
+      throw new ReadingMediaNotSupportedError(
+        `No default ${mediaSubtype} downloader configured.`
+      );
+    }
+
+    const downloaderSettings =
+      requestBody.serverId !== undefined && requestBody.serverId >= 0
+        ? (getBookDownloaderById(requestBody.serverId) ?? defaultDownloader)
+        : defaultDownloader;
+
+    const adapter = getBookDownloaderAdapter(downloaderSettings);
+    await adapter.getDetails(requestBody.metadataId);
+
+    let media = await mediaRepository.findOne({
+      where: {
+        metadataId: requestBody.metadataId,
+        mediaType,
+      },
+      relations: ['requests'],
+    });
+
+    if (!media) {
+      media = new Media({
+        metadataId: requestBody.metadataId,
+        imdbId: requestBody.foreignAuthorId,
+        tmdbId: metadataIdToTmdbPlaceholder(requestBody.metadataId),
+        status: MediaStatus.PENDING,
+        status4k: MediaStatus.UNKNOWN,
+        mediaType,
+      });
+    } else if (media.status === MediaStatus.BLOCKLISTED) {
+      throw new BlocklistedMediaError('This media is blocklisted.');
+    } else if (!media.imdbId) {
+      media.imdbId = requestBody.foreignAuthorId;
+    }
+
+    if (media.requests) {
+      const existing = media.requests.filter(
+        (request) =>
+          !request.is4k &&
+          request.status !== MediaRequestStatus.DECLINED &&
+          request.status !== MediaRequestStatus.COMPLETED
+      );
+
+      if (existing.length) {
+        throw new DuplicateMediaRequestError(
+          'Request for this media already exists.'
+        );
+      }
+    }
+
+    await mediaRepository.save(media);
+
+    const autoApprovePermissions = [
+      Permission.AUTO_APPROVE,
+      Permission.MANAGE_REQUESTS,
+    ];
+
+    const request = new MediaRequest({
+      type: mediaType,
+      media,
+      requestedBy: requestUser,
+      status: user.hasPermission(autoApprovePermissions, { type: 'or' })
+        ? MediaRequestStatus.APPROVED
+        : MediaRequestStatus.PENDING,
+      modifiedBy: user.hasPermission(autoApprovePermissions, { type: 'or' })
+        ? user
+        : undefined,
+      is4k: false,
+      serverId: downloaderSettings.id,
+      profileId: requestBody.profileId ?? downloaderSettings.activeProfileId,
+      rootFolder: requestBody.rootFolder ?? downloaderSettings.activeDirectory,
+      isAutoRequest: options.isAutoRequest ?? false,
+    });
+
+    await requestRepository.save(request);
+
+    return request;
   }
 
   @PrimaryGeneratedColumn()

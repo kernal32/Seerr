@@ -5,12 +5,16 @@ import { Permission, useUser } from '@app/hooks/useUser';
 import defineMessages from '@app/utils/defineMessages';
 import { Transition } from '@headlessui/react';
 import {
+  BookOpenIcon,
   ClockIcon,
   CogIcon,
   ExclamationTriangleIcon,
   EyeSlashIcon,
   FilmIcon,
+  NewspaperIcon,
+  RectangleStackIcon,
   SparklesIcon,
+  SpeakerWaveIcon,
   TvIcon,
   UsersIcon,
   XMarkIcon,
@@ -25,6 +29,10 @@ export const menuMessages = defineMessages('components.Layout.Sidebar', {
   dashboard: 'Discover',
   browsemovies: 'Movies',
   browsetv: 'Series',
+  browsebooks: 'Books',
+  browseaudiobooks: 'Audiobooks',
+  browsecomics: 'Comics',
+  browsemagazines: 'Magazines',
   requests: 'Requests',
   blocklist: 'Blocklist',
   issues: 'Issues',
@@ -70,6 +78,30 @@ const SidebarLinks: SidebarLinkProps[] = [
     messagesKey: 'browsetv',
     svgIcon: <TvIcon className="mr-3 h-6 w-6" />,
     activeRegExp: /^\/discover\/tv$/,
+  },
+  {
+    href: '/discover/books',
+    messagesKey: 'browsebooks',
+    svgIcon: <BookOpenIcon className="mr-3 h-6 w-6" />,
+    activeRegExp: /^\/discover\/books$/,
+  },
+  {
+    href: '/discover/audiobooks',
+    messagesKey: 'browseaudiobooks',
+    svgIcon: <SpeakerWaveIcon className="mr-3 h-6 w-6" />,
+    activeRegExp: /^\/discover\/audiobooks$/,
+  },
+  {
+    href: '/discover/comics',
+    messagesKey: 'browsecomics',
+    svgIcon: <RectangleStackIcon className="mr-3 h-6 w-6" />,
+    activeRegExp: /^\/discover\/comics$/,
+  },
+  {
+    href: '/discover/magazines',
+    messagesKey: 'browsemagazines',
+    svgIcon: <NewspaperIcon className="mr-3 h-6 w-6" />,
+    activeRegExp: /^\/discover\/magazines$/,
   },
   {
     href: '/requests',

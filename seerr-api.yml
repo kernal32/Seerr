@@ -695,6 +695,87 @@ components:
         - is4k
         - enableSeasonFolders
         - isDefault
+    BookDownloaderSettings:
+      type: object
+      properties:
+        id:
+          type: number
+          example: 0
+          readOnly: true
+        name:
+          type: string
+          example: 'Bindery Main'
+        hostname:
+          type: string
+          example: '127.0.0.1'
+        port:
+          type: number
+          example: 8787
+        apiKey:
+          type: string
+          example: 'exampleapikey'
+        useSsl:
+          type: boolean
+          example: false
+        baseUrl:
+          type: string
+        activeProfileId:
+          type: number
+          example: 1
+        activeProfileName:
+          type: string
+          example: 'EPUB'
+        activeDirectory:
+          type: string
+          example: '/books'
+        is4k:
+          type: boolean
+          example: false
+        isDefault:
+          type: boolean
+          example: false
+        externalUrl:
+          type: string
+        syncEnabled:
+          type: boolean
+          example: false
+        preventSearch:
+          type: boolean
+          example: false
+        tags:
+          type: array
+          items:
+            type: number
+        tagRequests:
+          type: boolean
+          example: false
+        overrideRule:
+          type: array
+          items:
+            type: number
+        provider:
+          type: string
+          enum: [bindery, librarr, readarr]
+          example: bindery
+        mediaSubtype:
+          type: string
+          enum: [book, audiobook]
+          example: book
+        hardcoverApiToken:
+          type: string
+          description: Optional Hardcover API token used for book search when Bindery/OpenLibrary search is unavailable
+      required:
+        - name
+        - hostname
+        - port
+        - apiKey
+        - useSsl
+        - activeProfileId
+        - activeProfileName
+        - activeDirectory
+        - isDefault
+        - provider
+        - mediaSubtype
     ServarrTag:
       type: object
       properties:
@@ -2955,6 +3036,135 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SonarrSettings'
+  /settings/bookDownloader:
+    get:
+      summary: Get book downloader settings
+      description: Returns all book downloader settings in a JSON array.
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Values were returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookDownloaderSettings'
+    post:
+      summary: Create book downloader instance
+      description: Creates a new book downloader instance from the request body.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookDownloaderSettings'
+      responses:
+        '201':
+          description: New book downloader instance created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookDownloaderSettings'
+  /settings/bookDownloader/test:
+    post:
+      summary: Test book downloader configuration
+      description: Tests if the book downloader configuration is valid.
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                hostname:
+                  type: string
+                  example: '127.0.0.1'
+                port:
+                  type: number
+                  example: 8787
+                apiKey:
+                  type: string
+                  example: yourapikey
+                useSsl:
+                  type: boolean
+                  example: false
+                baseUrl:
+                  type: string
+              required:
+                - hostname
+                - port
+                - apiKey
+                - useSsl
+      responses:
+        '200':
+          description: Successfully connected to book downloader instance
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profiles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceProfile'
+                  rootFolders:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: number
+                        path:
+                          type: string
+  /settings/bookDownloader/{id}:
+    put:
+      summary: Update book downloader instance
+      description: Updates an existing book downloader instance.
+      tags:
+        - settings
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookDownloaderSettings'
+      responses:
+        '200':
+          description: Book downloader instance updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookDownloaderSettings'
+    delete:
+      summary: Delete book downloader instance
+      description: Deletes an existing book downloader instance.
+      tags:
+        - settings
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Book downloader instance deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookDownloaderSettings'
   /settings/public:
     get:
       summary: Get public settings
@@ -6338,7 +6548,7 @@ paths:
           name: mediaType
           schema:
             type: string
-            enum: [movie, tv, all]
+            enum: [movie, tv, book, audiobook, all]
             nullable: true
             default: all
       responses:
@@ -6372,11 +6582,20 @@ paths:
               properties:
                 mediaType:
                   type: string
-                  enum: [movie, tv]
+                  enum: [movie, tv, book, audiobook]
                   example: movie
                 mediaId:
                   type: number
                   example: 123
+                metadataId:
+                  type: string
+                  description: 'Reading media metadata ID (e.g. Hardcover hc slug prefix)'
+                foreignAuthorId:
+                  type: string
+                  description: Author metadata ID for reading media requests
+                authorName:
+                  type: string
+                  description: Author display name for reading media requests
                 tvdbId:
                   type: number
                   example: 123
@@ -6588,6 +6807,124 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MediaRequest'
+  /book/config/status:
+    get:
+      summary: Get book downloader configuration status
+      tags:
+        - books
+      responses:
+        '200':
+          description: Configuration status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configured:
+                    type: boolean
+  /book/search:
+    get:
+      summary: Search books
+      tags:
+        - books
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+        '503':
+          description: No book downloader configured
+        '502':
+          description: Metadata search unavailable
+  /book/{bookId}:
+    get:
+      summary: Get book details
+      tags:
+        - books
+      parameters:
+        - in: path
+          name: bookId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Book details
+          content:
+            application/json:
+              schema:
+                type: object
+        '503':
+          description: No book downloader configured
+        '502':
+          description: Metadata search unavailable
+  /audiobook/config/status:
+    get:
+      summary: Get audiobook downloader configuration status
+      tags:
+        - audiobooks
+      responses:
+        '200':
+          description: Configuration status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configured:
+                    type: boolean
+  /audiobook/search:
+    get:
+      summary: Search audiobooks
+      tags:
+        - audiobooks
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+        '503':
+          description: No audiobook downloader configured
+        '502':
+          description: Metadata search unavailable
+  /audiobook/{audiobookId}:
+    get:
+      summary: Get audiobook details
+      tags:
+        - audiobooks
+      parameters:
+        - in: path
+          name: audiobookId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audiobook details
+          content:
+            application/json:
+              schema:
+                type: object
+        '503':
+          description: No audiobook downloader configured
+        '502':
+          description: Metadata search unavailable
   /movie/{movieId}:
     get:
       summary: Get movie details

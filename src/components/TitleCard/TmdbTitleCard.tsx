@@ -1,5 +1,6 @@
 import TitleCard from '@app/components/TitleCard';
 import { Permission, useUser } from '@app/hooks/useUser';
+import { MediaType, isVideoMediaType } from '@server/constants/media';
 import type { MovieDetails } from '@server/models/Movie';
 import type { TvDetails } from '@server/models/Tv';
 import { useInView } from 'react-intersection-observer';
@@ -9,7 +10,7 @@ export interface TmdbTitleCardProps {
   id: number;
   tmdbId: number;
   tvdbId?: number;
-  type: 'movie' | 'tv';
+  type: MediaType;
   canExpand?: boolean;
   isAddedToWatchlist?: boolean;
   mutateParent?: () => void;
@@ -29,15 +30,22 @@ const TmdbTitleCard = ({
   mutateParent,
 }: TmdbTitleCardProps) => {
   const { hasPermission } = useUser();
+  const isVideo = isVideoMediaType(type);
 
   const { ref, inView } = useInView({
     triggerOnce: true,
   });
   const url =
-    type === 'movie' ? `/api/v1/movie/${tmdbId}` : `/api/v1/tv/${tmdbId}`;
+    type === MediaType.MOVIE
+      ? `/api/v1/movie/${tmdbId}`
+      : `/api/v1/tv/${tmdbId}`;
   const { data: title, error } = useSWR<MovieDetails | TvDetails>(
-    inView ? `${url}` : null
+    isVideo && inView ? `${url}` : null
   );
+
+  if (!isVideo) {
+    return null;
+  }
 
   if (!title && !error) {
     return (
@@ -71,7 +79,7 @@ const TmdbTitleCard = ({
       title={title.title}
       userScore={title.voteAverage}
       year={title.releaseDate}
-      mediaType={'movie'}
+      mediaType={MediaType.MOVIE}
       canExpand={canExpand}
       mutateParent={mutateParent}
     />
@@ -88,7 +96,7 @@ const TmdbTitleCard = ({
       title={title.name}
       userScore={title.voteAverage}
       year={title.firstAirDate}
-      mediaType={'tv'}
+      mediaType={MediaType.TV}
       canExpand={canExpand}
       mutateParent={mutateParent}
     />

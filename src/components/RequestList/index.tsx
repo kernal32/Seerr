@@ -3,6 +3,7 @@ import Header from '@app/components/Common/Header';
 import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import PageTitle from '@app/components/Common/PageTitle';
 import Tooltip from '@app/components/Common/Tooltip';
+import { menuMessages } from '@app/components/Layout/Sidebar';
 import RequestItem from '@app/components/RequestList/RequestItem';
 import { useUpdateQueryParams } from '@app/hooks/useUpdateQueryParams';
 import { Permission, useUser } from '@app/hooks/useUser';
@@ -193,6 +194,12 @@ const RequestList = () => {
               </option>
               <option value="tv">
                 {intl.formatMessage(globalMessages.tvshows)}
+              </option>
+              <option value="book">
+                {intl.formatMessage(menuMessages.browsebooks)}
+              </option>
+              <option value="audiobook">
+                {intl.formatMessage(menuMessages.browseaudiobooks)}
               </option>
             </select>
           </div>

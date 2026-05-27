@@ -461,12 +461,12 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
       <IssueModal
         onCancel={() => setShowIssueModal(false)}
         show={showIssueModal}
-        mediaType="movie"
+        mediaType={MediaType.MOVIE}
         tmdbId={data.id}
       />
       <ManageSlideOver
         data={data}
-        mediaType="movie"
+        mediaType={MediaType.MOVIE}
         onClose={() => {
           setShowManager(false);
           router.push({
@@ -510,7 +510,7 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
               title={data.title}
               inProgress={(data.mediaInfo?.downloadStatus ?? []).length > 0}
               tmdbId={data.mediaInfo?.tmdbId}
-              mediaType="movie"
+              mediaType={MediaType.MOVIE}
               plexUrl={plexUrl}
               serviceUrl={data.mediaInfo?.serviceUrl}
             />
@@ -534,7 +534,7 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
                     (data.mediaInfo?.downloadStatus4k ?? []).length > 0
                   }
                   tmdbId={data.mediaInfo?.tmdbId}
-                  mediaType="movie"
+                  mediaType={MediaType.MOVIE}
                   plexUrl={plexUrl4k}
                   serviceUrl={data.mediaInfo?.serviceUrl4k}
                 />
@@ -620,7 +620,7 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
             <PlayButton links={mediaLinks} />
           </div>
           <RequestButton
-            mediaType="movie"
+            mediaType={MediaType.MOVIE}
             media={data.mediaInfo}
             tmdbId={data.id}
             onUpdate={() => revalidate()}
@@ -1089,7 +1089,7 @@ const MovieDetails = ({ movie }: MovieDetailsProps) => {
             )}
             <div className="media-fact">
               <ExternalLinkBlock
-                mediaType="movie"
+                mediaType={MediaType.MOVIE}
                 tmdbId={data.id}
                 tvdbId={data.externalIds.tvdbId}
                 imdbId={data.externalIds.imdbId}

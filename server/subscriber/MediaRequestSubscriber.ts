@@ -1,3 +1,8 @@
+import {
+  getBookDownloaderAdapter,
+  getBookDownloaderById,
+  getDefaultBookDownloader,
+} from '@server/api/downloaders/factory';
 import type { RadarrMovieOptions } from '@server/api/servarr/radarr';
 import RadarrAPI from '@server/api/servarr/radarr';
 import type {
@@ -470,6 +475,120 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
             Notification.MEDIA_FAILED
           );
         }
+      }
+    }
+  }
+
+  public async sendToBookDownloader(entity: MediaRequest): Promise<void> {
+    if (
+      entity.status !== MediaRequestStatus.APPROVED ||
+      (entity.type !== MediaType.BOOK && entity.type !== MediaType.AUDIOBOOK)
+    ) {
+      return;
+    }
+
+    const mediaSubtype =
+      entity.type === MediaType.AUDIOBOOK ? 'audiobook' : 'book';
+
+    try {
+      const mediaRepository = getRepository(Media);
+      const defaultDownloader = getDefaultBookDownloader(mediaSubtype);
+
+      if (!defaultDownloader) {
+        logger.info(
+          'No reading media downloader configured, skipping request processing',
+          {
+            label: 'Media Request',
+            requestId: entity.id,
+            mediaId: entity.media.id,
+            mediaSubtype,
+          }
+        );
+        return;
+      }
+
+      let downloaderSettings = defaultDownloader;
+
+      if (
+        entity.serverId !== null &&
+        entity.serverId >= 0 &&
+        downloaderSettings.id !== entity.serverId
+      ) {
+        downloaderSettings =
+          getBookDownloaderById(entity.serverId) ?? defaultDownloader;
+      }
+
+      const adapter = getBookDownloaderAdapter(downloaderSettings);
+      const media = await mediaRepository.findOne({
+        where: { id: entity.media.id },
+      });
+
+      if (!media?.metadataId) {
+        logger.error('Book media is missing metadataId', {
+          label: 'Media Request',
+          requestId: entity.id,
+          mediaId: entity.media.id,
+        });
+        return;
+      }
+
+      if (media.status === MediaStatus.AVAILABLE) {
+        const requestRepository = getRepository(MediaRequest);
+        entity.status = MediaRequestStatus.COMPLETED;
+        await requestRepository.save(entity);
+        return;
+      }
+
+      const details = await adapter.getDetails(media.metadataId);
+      const foreignAuthorId = media.imdbId ?? details.foreignAuthorId;
+
+      if (!foreignAuthorId) {
+        throw new Error('Book media is missing foreignAuthorId');
+      }
+
+      const result = await adapter.addToLibrary({
+        metadataId: media.metadataId,
+        title: details.title,
+        foreignAuthorId,
+        authorName: details.author ?? details.subtitle,
+        searchOnAdd: !downloaderSettings.preventSearch,
+        rootFolder: entity.rootFolder ?? downloaderSettings.activeDirectory,
+        profileId: entity.profileId ?? downloaderSettings.activeProfileId,
+      });
+
+      media.externalServiceId = result.externalServiceId;
+      media.externalServiceSlug = result.externalServiceSlug;
+      media.serviceId = downloaderSettings.id;
+      media.status = MediaStatus.PROCESSING;
+      await mediaRepository.save(media);
+
+      logger.info('Sent request to book downloader', {
+        label: 'Media Request',
+        requestId: entity.id,
+        mediaId: entity.media.id,
+      });
+    } catch (e) {
+      const requestRepository = getRepository(MediaRequest);
+      const mediaRepository = getRepository(Media);
+      const media = await mediaRepository.findOne({
+        where: { id: entity.media.id },
+      });
+
+      if (media) {
+        entity.status = MediaRequestStatus.FAILED;
+        await requestRepository.save(entity);
+
+        logger.warn(
+          'Failed to send book request to downloader, marking status as FAILED',
+          {
+            label: 'Media Request',
+            requestId: entity.id,
+            mediaId: entity.media.id,
+            errorMessage: e instanceof Error ? e.message : String(e),
+          }
+        );
+
+        MediaRequest.sendNotification(entity, media, Notification.MEDIA_FAILED);
       }
     }
   }
@@ -1011,6 +1130,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     try {
       await this.sendToRadarr(event.entity as MediaRequest);
       await this.sendToSonarr(event.entity as MediaRequest);
+      await this.sendToBookDownloader(event.entity as MediaRequest);
     } catch (e) {
       logger.error('Error while sending to *arr in afterUpdate subscriber', {
         label: 'Media Request',
@@ -1050,6 +1170,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     try {
       await this.sendToRadarr(event.entity as MediaRequest);
       await this.sendToSonarr(event.entity as MediaRequest);
+      await this.sendToBookDownloader(event.entity as MediaRequest);
     } catch (e) {
       logger.error('Error while sending to *arr in afterInsert subscriber', {
         label: 'Media Request',
