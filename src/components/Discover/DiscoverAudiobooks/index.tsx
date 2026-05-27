@@ -1,6 +1,7 @@
 import DiscoverReadingMedia from '@app/components/Discover/DiscoverReadingMedia';
 import useSettings from '@app/hooks/useSettings';
 import defineMessages from '@app/utils/defineMessages';
+import { MediaType } from '@server/constants/media';
 
 const messages = defineMessages('components.Discover.DiscoverAudiobooks', {
   discoveraudiobooks: 'Audiobooks',
@@ -21,6 +22,8 @@ const DiscoverAudiobooks = () => {
       apiBasePath="/api/v1/audiobook"
       detailPathPrefix="/audiobook"
       discoverPath="/discover/audiobooks"
+      discoverListBasePath="/api/v1/discover/audiobooks"
+      mediaType={MediaType.AUDIOBOOK}
       enabled={currentSettings.audiobooksEnabled}
       mediaTypeLabel="Audiobooks"
       messages={{

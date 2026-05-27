@@ -1,11 +1,12 @@
 ﻿services:
   seerr:
     build:
-      context: .
+      context: https://github.com/kernal32/Seerr.git#main
       dockerfile: Dockerfile
       args:
         COMMIT_TAG: private
     image: seerr-home:local
+    pull_policy: never
     container_name: seerr
     ports:
       - "5055:5055"
@@ -14,3 +15,9 @@
     environment:
       TZ: Australia/Adelaide
     restart: unless-stopped
+    networks:
+      - npm-internal
+
+networks:
+  npm-internal:
+    external: true

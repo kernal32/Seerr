@@ -143,6 +143,21 @@ export interface MetadataSettings {
   anime: MetadataProviderType;
 }
 
+export interface ReadingDiscoverListConfig {
+  listName: string;
+  displayName: string;
+  mediaSubtype: BookDownloaderSubtype;
+  enabled: boolean;
+}
+
+export interface ReadingDiscoverSettings {
+  nytApiKey?: string;
+  nytEnabled: boolean;
+  lists: ReadingDiscoverListConfig[];
+  hardcoverPopularEnabled: boolean;
+  hardcoverTrendingEnabled: boolean;
+}
+
 export interface ProxySettings {
   enabled: boolean;
   hostname: string;
@@ -242,6 +257,15 @@ interface FullPublicSettings extends PublicSettings {
   newPlexLogin: boolean;
   youtubeUrl: string;
   plexClientIdentifier: string;
+  readingDiscover: {
+    nytEnabled: boolean;
+    lists: Pick<
+      ReadingDiscoverListConfig,
+      'listName' | 'displayName' | 'mediaSubtype' | 'enabled'
+    >[];
+    hardcoverPopularEnabled: boolean;
+    hardcoverTrendingEnabled: boolean;
+  };
 }
 
 export interface NotificationAgentConfig {
@@ -414,6 +438,7 @@ export interface AllSettings {
   jobs: Record<JobId, JobSettings>;
   network: NetworkSettings;
   metadataSettings: MetadataSettings;
+  readingDiscover: ReadingDiscoverSettings;
   migrations: string[];
 }
 
@@ -482,6 +507,13 @@ class Settings {
       metadataSettings: {
         tv: MetadataProviderType.TMDB,
         anime: MetadataProviderType.TMDB,
+      },
+      readingDiscover: {
+        nytApiKey: '',
+        nytEnabled: false,
+        lists: [],
+        hardcoverPopularEnabled: false,
+        hardcoverTrendingEnabled: true,
       },
       radarr: [],
       sonarr: [],
@@ -798,7 +830,30 @@ class Settings {
       newPlexLogin: this.data.main.newPlexLogin,
       youtubeUrl: this.data.main.youtubeUrl,
       plexClientIdentifier: this.data.clientId,
+      readingDiscover: {
+        nytEnabled: this.data.readingDiscover.nytEnabled,
+        lists: this.data.readingDiscover.lists
+          .filter((list) => list.enabled)
+          .map(({ listName, displayName, mediaSubtype, enabled }) => ({
+            listName,
+            displayName,
+            mediaSubtype,
+            enabled,
+          })),
+        hardcoverPopularEnabled:
+          this.data.readingDiscover.hardcoverPopularEnabled,
+        hardcoverTrendingEnabled:
+          this.data.readingDiscover.hardcoverTrendingEnabled,
+      },
     };
+  }
+
+  get readingDiscover(): ReadingDiscoverSettings {
+    return this.data.readingDiscover;
+  }
+
+  set readingDiscover(data: ReadingDiscoverSettings) {
+    this.data.readingDiscover = mergeSettings(this.data.readingDiscover, data);
   }
 
   get notifications(): NotificationSettings {

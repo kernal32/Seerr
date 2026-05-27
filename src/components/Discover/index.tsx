@@ -14,7 +14,9 @@ import StudioSlider from '@app/components/Discover/StudioSlider';
 import TvGenreSlider from '@app/components/Discover/TvGenreSlider';
 import { sliderTitles } from '@app/components/Discover/constants';
 import MediaSlider from '@app/components/MediaSlider';
+import ReadingDiscoverSliders from '@app/components/Discover/ReadingDiscoverSliders';
 import { encodeURIExtraParams } from '@app/hooks/useDiscover';
+import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
@@ -28,6 +30,7 @@ import {
   PlusIcon,
 } from '@heroicons/react/24/solid';
 import { DiscoverSliderType } from '@server/constants/discover';
+import { MediaType } from '@server/constants/media';
 import type DiscoverSlider from '@server/entity/DiscoverSlider';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
@@ -56,6 +59,7 @@ const Discover = () => {
   const intl = useIntl();
   const { hasPermission } = useUser();
   const { addToast } = useToasts();
+  const { currentSettings } = useSettings();
   const {
     data: discoverData,
     error: discoverError,
@@ -396,6 +400,26 @@ const Discover = () => {
               />
             );
             break;
+          case DiscoverSliderType.POPULAR_BOOKS:
+            sliderComponent = currentSettings.booksEnabled ? (
+              <ReadingDiscoverSliders
+                discoverListBasePath="/api/v1/discover/books"
+                discoverPath="/discover/books"
+                mediaSubtype="book"
+                mediaType={MediaType.BOOK}
+              />
+            ) : null;
+            break;
+          case DiscoverSliderType.POPULAR_AUDIOBOOKS:
+            sliderComponent = currentSettings.audiobooksEnabled ? (
+              <ReadingDiscoverSliders
+                discoverListBasePath="/api/v1/discover/audiobooks"
+                discoverPath="/discover/audiobooks"
+                mediaSubtype="audiobook"
+                mediaType={MediaType.AUDIOBOOK}
+              />
+            ) : null;
+            break;
         }
 
         if (isEditing) {
@@ -450,7 +474,7 @@ const Discover = () => {
           );
         }
 
-        if (!slider.enabled) {
+        if (!slider.enabled || !sliderComponent) {
           return null;
         }
 

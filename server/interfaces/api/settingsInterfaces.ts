@@ -51,6 +51,17 @@ export interface PublicSettingsResponse {
   newPlexLogin: boolean;
   youtubeUrl: string;
   plexClientIdentifier: string;
+  readingDiscover?: {
+    nytEnabled: boolean;
+    lists: {
+      listName: string;
+      displayName: string;
+      mediaSubtype: 'book' | 'audiobook';
+      enabled: boolean;
+    }[];
+    hardcoverPopularEnabled: boolean;
+    hardcoverTrendingEnabled: boolean;
+  };
 }
 
 export interface CacheItem {

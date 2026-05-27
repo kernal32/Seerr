@@ -247,6 +247,12 @@ CoreApp.getInitialProps = async (initialProps) => {
     series4kEnabled: false,
     booksEnabled: false,
     audiobooksEnabled: false,
+    readingDiscover: {
+      nytEnabled: false,
+      lists: [],
+      hardcoverPopularEnabled: false,
+      hardcoverTrendingEnabled: true,
+    },
     localLogin: true,
     mediaServerLogin: true,
     discoverRegion: '',

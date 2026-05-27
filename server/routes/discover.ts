@@ -25,6 +25,7 @@ import { isCollection, isMovie, isPerson } from '@server/utils/typeHelpers';
 import { Router } from 'express';
 import { sortBy } from 'lodash';
 import { z } from 'zod';
+import discoverReadingRoutes from './discoverReading';
 
 export const createTmdbWithRegionLanguage = (user?: User): TheMovieDb => {
   const settings = getSettings();
@@ -981,5 +982,7 @@ discoverRoutes.get<Record<string, unknown>, WatchlistResponse>(
     });
   }
 );
+
+discoverRoutes.use(discoverReadingRoutes);
 
 export default discoverRoutes;

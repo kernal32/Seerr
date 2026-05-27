@@ -61,27 +61,257 @@ class HardcoverClient {
     mediaSubtype: 'book' | 'audiobook',
     mediaType: MediaType
   ): Promise<SearchResult[]> {
-    const response = await this.query<{
-      search: { results: unknown };
-    }>(
-      `query SearchBooks($query: String!, $queryType: String!, $perPage: Int!) {
-        search(query: $query, query_type: $queryType, per_page: $perPage) {
-          results
-        }
-      }`,
-      {
-        query: term.trim(),
-        queryType: 'Book',
-        perPage: 20,
-      }
-    );
-
-    const parsed = parseHardcoverBookSearchResults(response.search.results);
+    const parsed = await this.searchIndexedBooks(term);
 
     return parsed
       .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
       .map((book) => safeMapHardcoverBook(book, mediaType))
       .filter((result): result is SearchResult => result !== null);
+  }
+
+  private async searchIndexedBooks(
+    term: string,
+    options?: {
+      fields?: string;
+      sort?: string;
+      perPage?: number;
+      page?: number;
+    }
+  ): Promise<HardcoverSearchBook[]> {
+    const perPage = options?.perPage ?? 20;
+    const page = options?.page ?? 1;
+    const query = term.trim();
+
+    if (options?.fields || options?.sort) {
+      const response = await this.query<{
+        search: { results: unknown };
+      }>(
+        `query SearchBooks($query: String!, $queryType: String!, $perPage: Int!, $page: Int!, $fields: String, $sort: String) {
+          search(
+            query: $query
+            query_type: $queryType
+            per_page: $perPage
+            page: $page
+            fields: $fields
+            sort: $sort
+          ) {
+            results
+          }
+        }`,
+        {
+          query,
+          queryType: 'Book',
+          perPage,
+          page,
+          fields: options.fields,
+          sort: options.sort,
+        }
+      );
+
+      return parseHardcoverBookSearchResults(response.search.results);
+    }
+
+    const response = await this.query<{
+      search: { results: unknown };
+    }>(
+      `query SearchBooks($query: String!, $queryType: String!, $perPage: Int!, $page: Int!) {
+        search(query: $query, query_type: $queryType, per_page: $perPage, page: $page) {
+          results
+        }
+      }`,
+      {
+        query,
+        queryType: 'Book',
+        perPage,
+        page,
+      }
+    );
+
+    return parseHardcoverBookSearchResults(response.search.results);
+  }
+
+  public async findBookByIsbn(
+    isbn: string,
+    mediaSubtype: 'book' | 'audiobook',
+    mediaType: MediaType
+  ): Promise<SearchResult | null> {
+    const results = await this.search(isbn, mediaSubtype, mediaType);
+    return results[0] ?? null;
+  }
+
+  public async getBooksByAuthor(
+    authorName: string,
+    excludeBookId: string,
+    mediaSubtype: 'book' | 'audiobook',
+    mediaType: MediaType,
+    limit = 20,
+    foreignAuthorId?: string
+  ): Promise<SearchResult[]> {
+    const authorSlug = foreignAuthorId?.startsWith(HARDCOVER_ID_PREFIX)
+      ? foreignAuthorId.slice(HARDCOVER_ID_PREFIX.length)
+      : undefined;
+
+    if (authorSlug) {
+      const bySlug = await this.getBooksByAuthorSlug(
+        authorSlug,
+        excludeBookId,
+        mediaSubtype,
+        mediaType,
+        limit
+      );
+
+      if (bySlug.length > 0) {
+        return bySlug;
+      }
+    }
+
+    const books = await this.searchIndexedBooks(authorName, {
+      sort: 'users_read_count:desc',
+      perPage: limit + 5,
+    });
+
+    return books
+      .filter((book) => hardcoverForeignBookId(book) !== excludeBookId)
+      .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
+      .slice(0, limit)
+      .map((book) => safeMapHardcoverBook(book, mediaType))
+      .filter((result): result is SearchResult => result !== null);
+  }
+
+  private async getBooksByAuthorSlug(
+    authorSlug: string,
+    excludeBookId: string,
+    mediaSubtype: 'book' | 'audiobook',
+    mediaType: MediaType,
+    limit: number
+  ): Promise<SearchResult[]> {
+    const response = await this.query<{ books: HardcoverSearchBook[] }>(
+      `query AuthorBooks($slug: String!, $limit: Int!) {
+        books(
+          where: { contributions: { author: { slug: { _eq: $slug } } } }
+          limit: $limit
+          order_by: { users_read_count: desc }
+        ) {
+          id
+          title
+          slug
+          description
+          release_year
+          image { url }
+          contributions { author { id name slug } }
+        }
+      }`,
+      { slug: authorSlug, limit: limit + 5 }
+    );
+
+    return response.books
+      .map((book) => ({
+        ...book,
+        image_url: extractHardcoverImageUrl(book),
+      }))
+      .filter((book) => hardcoverForeignBookId(book) !== excludeBookId)
+      .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
+      .slice(0, limit)
+      .map((book) => safeMapHardcoverBook(book, mediaType))
+      .filter((result): result is SearchResult => result !== null);
+  }
+
+  /** Hardcover search index — genres/moods from the source book, ranked by popularity. */
+  public async getSimilarBooks(
+    bookForeignId: string,
+    mediaSubtype: 'book' | 'audiobook',
+    mediaType: MediaType,
+    limit = 20
+  ): Promise<SearchResult[]> {
+    const lookupId = bookForeignId.startsWith(HARDCOVER_ID_PREFIX)
+      ? bookForeignId.slice(HARDCOVER_ID_PREFIX.length)
+      : bookForeignId;
+
+    const sourceHits = await this.searchIndexedBooks(lookupId, {
+      perPage: 10,
+    });
+    const sourceBook =
+      sourceHits.find(
+        (book) =>
+          hardcoverForeignBookId(book) === bookForeignId ||
+          book.slug === lookupId ||
+          String(book.id) === lookupId
+      ) ?? sourceHits[0];
+
+    const styleQuery = firstSearchFacet(sourceBook, [
+      'genres',
+      'moods',
+      'tags',
+      'series_names',
+    ]);
+
+    if (!styleQuery) {
+      return [];
+    }
+
+    const books = await this.searchIndexedBooks(styleQuery, {
+      sort: 'users_read_count:desc',
+      perPage: limit + 5,
+    });
+
+    return books
+      .filter((book) => hardcoverForeignBookId(book) !== bookForeignId)
+      .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
+      .slice(0, limit)
+      .map((book) => safeMapHardcoverBook(book, mediaType))
+      .filter((result): result is SearchResult => result !== null);
+  }
+
+  public async getRankedBooks(
+    sort: 'activities_count:desc' | 'users_read_count:desc',
+    mediaSubtype: 'book' | 'audiobook',
+    mediaType: MediaType,
+    page: number,
+    perPage: number
+  ): Promise<{
+    page: number;
+    totalPages: number;
+    totalResults: number;
+    results: SearchResult[];
+  }> {
+    const response = await this.query<{
+      search: { results: unknown };
+    }>(
+      `query RankedBooks($query: String!, $queryType: String!, $perPage: Int!, $page: Int!, $sort: String!) {
+        search(
+          query: $query
+          query_type: $queryType
+          per_page: $perPage
+          page: $page
+          sort: $sort
+        ) {
+          results
+        }
+      }`,
+      {
+        query: '',
+        queryType: 'Book',
+        perPage,
+        page,
+        sort,
+      }
+    );
+
+    const parsed = parseHardcoverBookSearchResults(response.search.results);
+    const results = parsed
+      .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
+      .map((book) => safeMapHardcoverBook(book, mediaType))
+      .filter((result): result is SearchResult => result !== null);
+
+    const totalPages = results.length === perPage ? page + 4 : page;
+    const totalResults = (page - 1) * perPage + results.length;
+
+    return {
+      page,
+      totalPages,
+      totalResults,
+      results,
+    };
   }
 
   public async getDetails(
@@ -193,6 +423,33 @@ const extractHardcoverImageUrl = (
     typeof book.image.url === 'string'
   ) {
     return book.image.url.trim() || undefined;
+  }
+
+  return undefined;
+};
+
+const firstSearchFacet = (
+  book: HardcoverSearchBook | undefined,
+  keys: ('genres' | 'moods' | 'tags' | 'series_names')[]
+): string | undefined => {
+  if (!book) {
+    return undefined;
+  }
+
+  for (const key of keys) {
+    const value = book[key];
+
+    if (Array.isArray(value)) {
+      const match = value.find((entry) => String(entry).trim());
+
+      if (match) {
+        return String(match).trim();
+      }
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      return value.split(',')[0]?.trim() || undefined;
+    }
   }
 
   return undefined;

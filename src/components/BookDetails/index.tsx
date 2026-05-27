@@ -7,6 +7,8 @@ const messages = defineMessages('components.BookDetails', {
   requestSuccess: 'Book request submitted.',
   requestError: 'Failed to submit book request.',
   overview: 'Overview',
+  moreByAuthor: 'More by {author}',
+  similarBooks: 'Similar Books',
 });
 
 interface BookDetailsProps {

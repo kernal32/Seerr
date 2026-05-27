@@ -10,7 +10,7 @@ const ServiceWorkerSetup = () => {
   const { currentSettings } = useSettings();
 
   useEffect(() => {
-    if ('serviceWorker' in navigator && user?.id) {
+    if ('serviceWorker' in navigator && user?.id && process.env.NODE_ENV === 'production') {
       navigator.serviceWorker
         .register('/sw.js')
         .then(async (registration) => {

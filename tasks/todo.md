@@ -24,6 +24,8 @@
 ## Phase 3 — Audiobooks
 
 - [x] Reuse book adapter with audiobook subtype + discover/detail pages
+- [x] Hardcover popular/trending discover sliders (home + books/audiobooks pages)
+- [x] NYT Best Sellers discover sliders + Settings → Reading Discover
 
 ## Phase 4 — Comics
 

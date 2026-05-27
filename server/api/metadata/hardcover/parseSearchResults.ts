@@ -23,6 +23,10 @@ export interface HardcoverSearchBook {
   contributions?: HardcoverSearchContribution[];
   has_audiobook?: boolean | string | number;
   has_ebook?: boolean | string | number;
+  genres?: string[] | string;
+  moods?: string[] | string;
+  tags?: string[] | string;
+  series_names?: string[] | string;
 }
 
 const truthy = (value: unknown): boolean => {

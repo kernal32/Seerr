@@ -8,7 +8,7 @@ export interface SettingsContextProps {
   children?: React.ReactNode;
 }
 
-const defaultSettings = {
+const defaultSettings: PublicSettingsResponse = {
   initialized: false,
   applicationTitle: 'Seerr',
   applicationUrl: '',
@@ -34,6 +34,12 @@ const defaultSettings = {
   newPlexLogin: true,
   youtubeUrl: '',
   plexClientIdentifier: '',
+  readingDiscover: {
+    nytEnabled: false,
+    lists: [],
+    hardcoverPopularEnabled: false,
+    hardcoverTrendingEnabled: true,
+  },
 };
 
 export const SettingsContext = React.createContext<SettingsContextProps>({
@@ -52,7 +58,18 @@ export const SettingsProvider = ({
   let newSettings = defaultSettings;
 
   if (data && !error) {
-    newSettings = data;
+    newSettings = {
+      ...defaultSettings,
+      ...data,
+      readingDiscover: {
+        nytEnabled: data.readingDiscover?.nytEnabled ?? false,
+        lists: data.readingDiscover?.lists ?? [],
+        hardcoverPopularEnabled:
+          data.readingDiscover?.hardcoverPopularEnabled ?? false,
+        hardcoverTrendingEnabled:
+          data.readingDiscover?.hardcoverTrendingEnabled ?? true,
+      },
+    };
   }
 
   return (

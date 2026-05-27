@@ -43,6 +43,7 @@ import bookDownloaderRoutes from './bookDownloader';
 import comicDownloaderRoutes from './comicDownloader';
 import magazineDownloaderRoutes from './magazineDownloader';
 import metadataRoutes from './metadata';
+import readingDiscoverSettingsRoutes from './readingDiscover';
 import notificationRoutes from './notifications';
 import radarrRoutes from './radarr';
 import sonarrRoutes from './sonarr';
@@ -57,6 +58,7 @@ settingsRoutes.use('/comicDownloader', comicDownloaderRoutes);
 settingsRoutes.use('/magazineDownloader', magazineDownloaderRoutes);
 settingsRoutes.use('/discover', discoverSettingRoutes);
 settingsRoutes.use('/metadatas', metadataRoutes);
+settingsRoutes.use('/reading-discover', readingDiscoverSettingsRoutes);
 
 const filteredMainSettings = (
   user: User,

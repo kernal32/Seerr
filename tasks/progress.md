@@ -2,6 +2,30 @@
 
 Newest entries at the top.
 
+## 2026-05-27 — phase3: fix book detail related sliders (author + similar)
+
+- Files: `server/api/metadata/hardcover/client.ts`, `server/routes/reading/registerReadingMediaRelatedRoutes.ts`, `src/components/{ReadingDetails,Discover/ReadingMediaSlider,ServiceWorkerSetup}/index.tsx`, `seerr-api.yml`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass
+- Notes: Hardcover `author_names` search returns null — author books now use GraphQL by author slug + general search fallback; pass `authorId` from book page; fix SWR infinite stuck loading (`initialSize: 1`, use hook `isLoading`); disable service worker in dev to stop offline-page noise on restart
+
+## 2026-05-27 — phase3: fix NYT monthly list 500 + slider flash
+
+- Files: `server/api/metadata/nyt/{client,encodeNytListSlug,encodeNytListSlug.test}.ts`, `server/routes/discoverReading.ts`, `server/lib/settings/migrations/0011_sync_nyt_list_slugs_from_overview.ts`, `src/components/ReadingDetails/index.tsx`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (5/5 NYT slug tests)
+- Notes: NYT `/lists/current/young-adult-paperback` returns 404 — encoded slug is `young-adult-paperback-monthly`; added overview fallback via `getListBooks()` + `matchNytOverviewList()`; migration 0011 syncs stored slugs on restart; book detail sliders no longer hide on empty/error
+
+## 2026-05-27 — phase3: NYT Best Sellers discover + Reading Discover settings
+
+- Files: `server/api/metadata/nyt/*`, `server/api/metadata/hardcover/client.ts`, `server/lib/settings/{index,migrations/0009_add_reading_discover.ts}`, `server/routes/{discoverReading,settings/readingDiscover}.ts`, `src/components/Settings/{SettingsReadingDiscover,SettingsLayout}.tsx`, `src/pages/settings/reading-discover.tsx`, `src/components/Discover/{ReadingDiscoverSliders,DiscoverReadingMedia,index}.tsx`, `server/interfaces/api/settingsInterfaces.ts`, `src/context/SettingsContext.tsx`, `seerr-api.yml`, `tasks/todo.md`
+- DoD: `pnpm typecheck` pass, `pnpm lint` pass, `pnpm test` pass (82/82)
+- Notes: NYT overview + current list APIs (May 2025 — no `/lists/names.json`); admin picks enabled lists at Settings → Reading Discover; NYT titles resolved to Hardcover via ISBN for request flow; Hardcover popular/trending optional toggles (popular off by default)
+
+## 2026-05-27 — phase3: Hardcover popular/trending book discover sliders
+
+- Files: `server/api/metadata/hardcover/{client,getHardcoverToken,getHardcoverToken.test}.ts`, `server/routes/discoverReading.ts`, `server/routes/discover.ts`, `server/constants/discover.ts`, `src/components/TitleCard/ReadingTitleCard.tsx`, `src/components/Discover/{ReadingMediaSlider,index,DiscoverReadingMedia,DiscoverBooks,DiscoverAudiobooks,constants,DiscoverSliderEdit}.tsx`, `seerr-api.yml`, `tasks/todo.md`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (77/77)
+- Notes: Popular/trending rows from Hardcover using existing downloader `hardcoverApiToken`; home Discover sliders + books/audiobooks pages; 15min server cache; sliders hide when token missing
+
 ## 2026-05-27 — phase2: Book request list display + Bindery author metadata
 
 - Files: `src/utils/requestMediaTitle.ts`, `src/components/RequestCard/index.tsx`, `src/components/RequestList/{index,RequestItem/index}.tsx`, `src/components/UserProfile/index.tsx`, `server/subscriber/MediaRequestSubscriber.ts`

@@ -1,6 +1,7 @@
 import Button from '@app/components/Common/Button';
 import Header from '@app/components/Common/Header';
 import PageTitle from '@app/components/Common/PageTitle';
+import ReadingMediaSlider from '@app/components/Discover/ReadingMediaSlider';
 import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
@@ -22,6 +23,8 @@ export interface ReadingDetailsProps {
     requestSuccess: MessageDescriptor;
     requestError: MessageDescriptor;
     overview: MessageDescriptor;
+    moreByAuthor: MessageDescriptor;
+    similarBooks: MessageDescriptor;
   };
 }
 
@@ -102,6 +105,11 @@ const ReadingDetails = ({
     hasPermission(Permission.REQUEST) &&
     data.mediaInfo?.status !== MediaStatus.AVAILABLE;
 
+  const authorName = data.author ?? data.subtitle;
+  const authorBooksUrl =
+    authorName &&
+    `${apiBasePath}/${encodeURIComponent(mediaId)}/author-books?authorName=${encodeURIComponent(authorName)}`;
+
   return (
     <>
       <PageTitle title={data.title} />
@@ -120,12 +128,14 @@ const ReadingDetails = ({
               {data.subtitle}
             </span>
           )}
-          {canRequest && (
-            <Button buttonType="primary" onClick={submitRequest}>
+        </div>
+        {canRequest && (
+          <div className="media-actions">
+            <Button buttonType="primary" buttonSize="md" onClick={submitRequest}>
               {intl.formatMessage(messages.request)}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       {data.overview && (
         <div className="media-overview mt-8">
@@ -133,6 +143,23 @@ const ReadingDetails = ({
           <p>{data.overview}</p>
         </div>
       )}
+      {authorBooksUrl && (
+        <ReadingMediaSlider
+          mediaType={mediaType}
+          sliderKey={`${mediaId}-author-books`}
+          title={intl.formatMessage(messages.moreByAuthor, {
+            author: authorName,
+          })}
+          url={authorBooksUrl}
+        />
+      )}
+      <ReadingMediaSlider
+        mediaType={mediaType}
+        sliderKey={`${mediaId}-similar`}
+        title={intl.formatMessage(messages.similarBooks)}
+        url={`${apiBasePath}/${encodeURIComponent(mediaId)}/similar`}
+      />
+      <div className="extra-bottom-space relative" />
     </>
   );
 };

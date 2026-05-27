@@ -6822,6 +6822,149 @@ paths:
                 properties:
                   configured:
                     type: boolean
+  /discover/books/popular:
+    get:
+      summary: Popular books from Hardcover
+      tags:
+        - books
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated popular book results
+        '503':
+          description: Hardcover API token not configured
+  /discover/books/trending:
+    get:
+      summary: Trending books from Hardcover
+      tags:
+        - books
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated trending book results
+        '503':
+          description: Hardcover API token not configured
+  /discover/audiobooks/popular:
+    get:
+      summary: Popular audiobooks from Hardcover
+      tags:
+        - audiobooks
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated popular audiobook results
+        '503':
+          description: Hardcover API token not configured
+  /discover/audiobooks/trending:
+    get:
+      summary: Trending audiobooks from Hardcover
+      tags:
+        - audiobooks
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated trending audiobook results
+        '503':
+          description: Hardcover API token not configured
+  /discover/books/nyt/{listSlug}:
+    get:
+      summary: NYT Best Sellers list for books
+      tags:
+        - books
+      parameters:
+        - in: path
+          name: listSlug
+          required: true
+          schema:
+            type: string
+            example: hardcover-fiction
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated NYT bestseller results resolved via Hardcover when available
+        '404':
+          description: List not enabled in Reading Discover settings
+        '503':
+          description: NYT Books API key not configured
+  /discover/audiobooks/nyt/{listSlug}:
+    get:
+      summary: NYT Best Sellers list for audiobooks
+      tags:
+        - audiobooks
+      parameters:
+        - in: path
+          name: listSlug
+          required: true
+          schema:
+            type: string
+            example: audio-fiction
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated NYT bestseller results resolved via Hardcover when available
+        '404':
+          description: List not enabled in Reading Discover settings
+        '503':
+          description: NYT Books API key not configured
+  /settings/reading-discover:
+    get:
+      summary: Get reading discover settings
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Reading discover settings
+    put:
+      summary: Update reading discover settings
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Updated reading discover settings
+  /settings/reading-discover/test:
+    post:
+      summary: Test NYT Books API key
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Connection successful
+  /settings/reading-discover/nyt-lists:
+    get:
+      summary: Load current NYT Best Sellers lists from overview API
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Available NYT lists for the current week
   /book/search:
     get:
       summary: Search books
@@ -6866,6 +7009,57 @@ paths:
           description: No book downloader configured
         '502':
           description: Metadata search unavailable
+  /book/{bookId}/author-books:
+    get:
+      summary: Get more books by the same author
+      tags:
+        - books
+      parameters:
+        - in: path
+          name: bookId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: authorName
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: authorId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated books by author
+        '503':
+          description: Hardcover API token not configured
+  /book/{bookId}/similar:
+    get:
+      summary: Get similar books
+      tags:
+        - books
+      parameters:
+        - in: path
+          name: bookId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated similar books
+        '503':
+          description: Hardcover API token not configured
   /audiobook/config/status:
     get:
       summary: Get audiobook downloader configuration status
@@ -6925,6 +7119,57 @@ paths:
           description: No audiobook downloader configured
         '502':
           description: Metadata search unavailable
+  /audiobook/{audiobookId}/author-books:
+    get:
+      summary: Get more audiobooks by the same author
+      tags:
+        - audiobooks
+      parameters:
+        - in: path
+          name: audiobookId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: authorName
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: authorId
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated audiobooks by author
+        '503':
+          description: Hardcover API token not configured
+  /audiobook/{audiobookId}/similar:
+    get:
+      summary: Get similar audiobooks
+      tags:
+        - audiobooks
+      parameters:
+        - in: path
+          name: audiobookId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated similar audiobooks
+        '503':
+          description: Hardcover API token not configured
   /movie/{movieId}:
     get:
       summary: Get movie details

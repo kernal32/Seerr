@@ -13,6 +13,7 @@ import {
 } from '@server/models/ReadingMedia';
 import { Router } from 'express';
 import { mapReadingRouteError } from './errors';
+import { registerReadingMediaRelatedRoutes } from './registerReadingMediaRelatedRoutes';
 
 export interface ReadingMediaRouteConfig {
   mediaSubtype: BookDownloaderSettings['mediaSubtype'];
@@ -83,6 +84,11 @@ export const createReadingMediaRoutes = (
         message: config.searchErrorMessage,
       });
     }
+  });
+
+  registerReadingMediaRelatedRoutes(router, {
+    mediaSubtype: config.mediaSubtype,
+    mediaType: config.mediaType,
   });
 
   router.get('/:mediaId', async (req, res, next) => {

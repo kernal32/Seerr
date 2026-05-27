@@ -2,9 +2,11 @@ import Button from '@app/components/Common/Button';
 import Header from '@app/components/Common/Header';
 import PageTitle from '@app/components/Common/PageTitle';
 import DiscoverReadingPlaceholder from '@app/components/Discover/DiscoverReadingPlaceholder';
+import ReadingDiscoverSliders from '@app/components/Discover/ReadingDiscoverSliders';
 import ErrorPage from '@app/pages/_error';
 import globalMessages from '@app/i18n/globalMessages';
 import type { ReadingMediaResult } from '@server/models/ReadingMedia';
+import { MediaType } from '@server/constants/media';
 import axios from 'axios';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -16,6 +18,8 @@ export interface DiscoverReadingMediaProps {
   apiBasePath: string;
   detailPathPrefix: string;
   discoverPath: string;
+  discoverListBasePath: string;
+  mediaType: typeof MediaType.BOOK | typeof MediaType.AUDIOBOOK;
   enabled: boolean;
   mediaTypeLabel: string;
   messages: {
@@ -32,6 +36,8 @@ const DiscoverReadingMedia = ({
   apiBasePath,
   detailPathPrefix,
   discoverPath,
+  discoverListBasePath,
+  mediaType,
   enabled,
   mediaTypeLabel,
   messages,
@@ -173,9 +179,12 @@ const DiscoverReadingMedia = ({
         </ul>
       )}
       {!query && (
-        <p className="text-gray-400">
-          {intl.formatMessage(messages.searchplaceholder)}
-        </p>
+        <ReadingDiscoverSliders
+          discoverListBasePath={discoverListBasePath}
+          discoverPath={discoverPath}
+          mediaSubtype={mediaType === MediaType.AUDIOBOOK ? 'audiobook' : 'book'}
+          mediaType={mediaType}
+        />
       )}
     </>
   );

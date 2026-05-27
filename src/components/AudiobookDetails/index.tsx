@@ -7,6 +7,8 @@ const messages = defineMessages('components.AudiobookDetails', {
   requestSuccess: 'Audiobook request submitted.',
   requestError: 'Failed to submit audiobook request.',
   overview: 'Overview',
+  moreByAuthor: 'More by {author}',
+  similarBooks: 'Similar Audiobooks',
 });
 
 interface AudiobookDetailsProps {
