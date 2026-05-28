@@ -540,7 +540,7 @@ const SettingsServices = () => {
         </h3>
         <p className="description">
           {intl.formatMessage(messages.serviceSettingsDescription, {
-            serverType: 'Bindery',
+            serverType: 'Bookshelf / Readarr',
           })}
         </p>
       </div>

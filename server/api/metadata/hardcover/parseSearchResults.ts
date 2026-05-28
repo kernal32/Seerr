@@ -135,11 +135,19 @@ export const hardcoverBookMatchesMediaType = (
   book: HardcoverSearchBook,
   mediaSubtype: 'book' | 'audiobook'
 ): boolean => {
-  if (mediaSubtype === 'audiobook') {
-    return truthy(book.has_audiobook);
+  const hasAudiobook = book.has_audiobook;
+  const hasEbook = book.has_ebook;
+
+  // GraphQL book queries omit format flags — do not exclude unknown rows.
+  if (hasAudiobook === undefined && hasEbook === undefined) {
+    return true;
   }
 
-  return truthy(book.has_ebook) || !truthy(book.has_audiobook);
+  if (mediaSubtype === 'audiobook') {
+    return truthy(hasAudiobook);
+  }
+
+  return truthy(hasEbook) || !truthy(hasAudiobook);
 };
 
 export const hardcoverAuthorFromBook = (
@@ -185,4 +193,14 @@ export const hardcoverForeignBookId = (book: HardcoverSearchBook): string => {
   }
 
   throw new Error('Hardcover search result is missing slug and id');
+};
+
+export const safeHardcoverForeignBookId = (
+  book: HardcoverSearchBook
+): string | undefined => {
+  try {
+    return hardcoverForeignBookId(book);
+  } catch {
+    return undefined;
+  }
 };

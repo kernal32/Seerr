@@ -1,4 +1,5 @@
 import BinderyClient from '@server/api/downloaders/bindery/client';
+import ReadarrClient from '@server/api/downloaders/readarr/client';
 import type { BookDownloaderSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
@@ -51,17 +52,28 @@ bookDownloaderRoutes.post<
   BookDownloaderSettings
 >('/test', async (req, res, next) => {
   try {
-    const client = new BinderyClient(
-      req.body,
-      BinderyClient.buildUrl(req.body)
-    );
+    const provider = req.body.provider ?? 'readarr';
+    const baseUrl =
+      provider === 'readarr'
+        ? ReadarrClient.buildUrl(req.body)
+        : BinderyClient.buildUrl(req.body);
+    const client =
+      provider === 'readarr'
+        ? new ReadarrClient(req.body, baseUrl)
+        : new BinderyClient(req.body, baseUrl);
 
     await client.getSystemStatus();
     const profiles = await client.getQualityProfiles();
     const folders = await client.getRootFolders();
 
+    const metadataProfiles =
+      provider === 'readarr' && client instanceof ReadarrClient
+        ? await client.getMetadataProfiles()
+        : [];
+
     return res.status(200).json({
       profiles,
+      metadataProfiles,
       rootFolders: folders.map((folder) => ({
         id: folder.id,
         path: folder.path,
@@ -71,13 +83,13 @@ bookDownloaderRoutes.post<
   } catch (e) {
     const message =
       axios.isAxiosError(e) && e.response?.status
-        ? `Bindery returned HTTP ${e.response.status}`
+        ? `Book downloader returned HTTP ${e.response.status}`
         : e instanceof Error
           ? e.message
           : 'Unknown error';
 
     logger.error('Failed to test book downloader', {
-      label: 'Bindery',
+      label: 'Book Downloader',
       message,
     });
 

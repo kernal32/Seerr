@@ -8,6 +8,7 @@ import {
   hardcoverBookMatchesMediaType,
   hardcoverForeignBookId,
   parseHardcoverBookSearchResults,
+  safeHardcoverForeignBookId,
   type HardcoverSearchBook,
 } from './parseSearchResults';
 
@@ -171,7 +172,7 @@ class HardcoverClient {
     });
 
     return books
-      .filter((book) => hardcoverForeignBookId(book) !== excludeBookId)
+      .filter((book) => safeHardcoverForeignBookId(book) !== excludeBookId)
       .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
       .slice(0, limit)
       .map((book) => safeMapHardcoverBook(book, mediaType))
@@ -209,7 +210,7 @@ class HardcoverClient {
         ...book,
         image_url: extractHardcoverImageUrl(book),
       }))
-      .filter((book) => hardcoverForeignBookId(book) !== excludeBookId)
+      .filter((book) => safeHardcoverForeignBookId(book) !== excludeBookId)
       .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
       .slice(0, limit)
       .map((book) => safeMapHardcoverBook(book, mediaType))
@@ -227,16 +228,33 @@ class HardcoverClient {
       ? bookForeignId.slice(HARDCOVER_ID_PREFIX.length)
       : bookForeignId;
 
-    const sourceHits = await this.searchIndexedBooks(lookupId, {
+    let sourceHits = await this.searchIndexedBooks(lookupId, {
       perPage: 10,
     });
-    const sourceBook =
-      sourceHits.find(
-        (book) =>
-          hardcoverForeignBookId(book) === bookForeignId ||
+    let sourceBook =
+      sourceHits.find((book) => {
+        const id = safeHardcoverForeignBookId(book);
+        return (
+          id === bookForeignId ||
           book.slug === lookupId ||
           String(book.id) === lookupId
-      ) ?? sourceHits[0];
+        );
+      }) ?? sourceHits[0];
+
+    if (!sourceBook) {
+      try {
+        const details = await this.getDetails(bookForeignId, mediaType);
+        sourceHits = await this.searchIndexedBooks(details.title, {
+          perPage: 10,
+        });
+        sourceBook =
+          sourceHits.find(
+            (book) => safeHardcoverForeignBookId(book) === bookForeignId
+          ) ?? sourceHits[0];
+      } catch {
+        return [];
+      }
+    }
 
     const styleQuery = firstSearchFacet(sourceBook, [
       'genres',
@@ -246,6 +264,20 @@ class HardcoverClient {
     ]);
 
     if (!styleQuery) {
+      if (sourceBook?.title?.trim()) {
+        const byTitle = await this.searchIndexedBooks(sourceBook.title, {
+          sort: 'users_read_count:desc',
+          perPage: limit + 5,
+        });
+
+        return byTitle
+          .filter((book) => safeHardcoverForeignBookId(book) !== bookForeignId)
+          .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
+          .slice(0, limit)
+          .map((book) => safeMapHardcoverBook(book, mediaType))
+          .filter((result): result is SearchResult => result !== null);
+      }
+
       return [];
     }
 
@@ -255,7 +287,7 @@ class HardcoverClient {
     });
 
     return books
-      .filter((book) => hardcoverForeignBookId(book) !== bookForeignId)
+      .filter((book) => safeHardcoverForeignBookId(book) !== bookForeignId)
       .filter((book) => hardcoverBookMatchesMediaType(book, mediaSubtype))
       .slice(0, limit)
       .map((book) => safeMapHardcoverBook(book, mediaType))

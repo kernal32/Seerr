@@ -48,6 +48,29 @@ describe('getHardcoverApiToken', () => {
     assert.equal(getHardcoverApiToken('audiobook'), 'audiobook-token');
   });
 
+  it('falls back to the book downloader token for audiobook lookups', () => {
+    mock.method(settingsModule, 'getSettings', () => ({
+      bookDownloaders: [
+        {
+          id: 0,
+          isDefault: true,
+          is4k: false,
+          mediaSubtype: 'book',
+          hardcoverApiToken: 'book-token',
+        },
+        {
+          id: 1,
+          isDefault: true,
+          is4k: false,
+          mediaSubtype: 'audiobook',
+          hardcoverApiToken: '',
+        },
+      ],
+    }));
+
+    assert.equal(getHardcoverApiToken('audiobook'), 'book-token');
+  });
+
   it('returns undefined when no token is configured', () => {
     mock.method(settingsModule, 'getSettings', () => ({
       bookDownloaders: [

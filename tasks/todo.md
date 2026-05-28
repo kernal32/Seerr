@@ -14,6 +14,7 @@
 ## Phase 2 — Books vertical slice
 
 - [x] Bindery adapter (`server/api/downloaders/bindery/`)
+- [x] Readarr/Bookshelf adapter (`server/api/downloaders/readarr/`) — `POST /api/v1/book`, metadata profile, Hardcover lookup
 - [x] Book downloader settings API + Services UI (`BookDownloaderModal`)
 - [x] Book search/detail API + DiscoverBooks + BookDetails UI
 - [x] `sendToBookDownloader` in MediaRequestSubscriber + `MediaRequest.requestBook()`

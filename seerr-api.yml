@@ -764,6 +764,13 @@ components:
         hardcoverApiToken:
           type: string
           description: Optional Hardcover API token used for book search when Bindery/OpenLibrary search is unavailable
+        activeMetadataProfileId:
+          type: number
+          example: 1
+          description: Metadata profile ID (required for Bookshelf/Readarr)
+        activeMetadataProfileName:
+          type: string
+          example: Standard
       required:
         - name
         - hostname
@@ -3096,6 +3103,10 @@ paths:
                   example: false
                 baseUrl:
                   type: string
+                provider:
+                  type: string
+                  enum: [bindery, readarr]
+                  example: readarr
               required:
                 - hostname
                 - port
@@ -3110,6 +3121,10 @@ paths:
                 type: object
                 properties:
                   profiles:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ServiceProfile'
+                  metadataProfiles:
                     type: array
                     items:
                       $ref: '#/components/schemas/ServiceProfile'

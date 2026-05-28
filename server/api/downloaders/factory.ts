@@ -2,6 +2,7 @@ import { MediaType } from '@server/constants/media';
 import type { BookDownloaderSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import { BinderyAdapter } from './bindery/adapter';
+import { ReadarrAdapter } from './readarr/adapter';
 import type { DownloaderAdapter } from './types';
 
 export const getDefaultBookDownloader = (
@@ -33,6 +34,8 @@ export const getBookDownloaderAdapter = (
   switch (downloaderSettings.provider) {
     case 'bindery':
       return new BinderyAdapter(downloaderSettings);
+    case 'readarr':
+      return new ReadarrAdapter(downloaderSettings);
     default:
       throw new Error(
         `Unsupported book downloader provider: ${downloaderSettings.provider}`

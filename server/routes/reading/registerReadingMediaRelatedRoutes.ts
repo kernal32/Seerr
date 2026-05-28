@@ -1,13 +1,12 @@
 import HardcoverClient from '@server/api/metadata/hardcover/client';
-import { getHardcoverApiToken } from '@server/api/metadata/hardcover/getHardcoverToken';
 import { HARDCOVER_ID_PREFIX } from '@server/api/metadata/hardcover/constants';
+import { getHardcoverApiToken } from '@server/api/metadata/hardcover/getHardcoverToken';
 import type { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
 import type { BookDownloaderSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { mapReadingMediaResults } from '@server/models/ReadingMedia';
-import type { NextFunction, Request, Response } from 'express';
-import type { Router } from 'express';
+import type { NextFunction, Request, Response, Router } from 'express';
 
 const RELATED_LIST_LIMIT = 20;
 
@@ -33,7 +32,11 @@ const createRelatedListHandler =
       });
     }
 
-    const mediaId = decodeURIComponent(String(req.params.mediaId));
+    const mediaId = decodeURIComponent(
+      String(
+        req.params.mediaId ?? req.params.bookId ?? req.params.audiobookId ?? ''
+      )
+    );
 
     if (!mediaId.startsWith(HARDCOVER_ID_PREFIX)) {
       return res.status(200).json({
@@ -51,9 +54,7 @@ const createRelatedListHandler =
           ? req.query.authorName
           : undefined;
       const foreignAuthorId =
-        typeof req.query.authorId === 'string'
-          ? req.query.authorId
-          : undefined;
+        typeof req.query.authorId === 'string' ? req.query.authorId : undefined;
       const results = await fetchResults(
         client,
         mediaId,
@@ -75,16 +76,18 @@ const createRelatedListHandler =
         results: mapReadingMediaResults(results, media),
       });
     } catch (error) {
-      logger.debug('Something went wrong retrieving related reading media', {
+      logger.warn('Something went wrong retrieving related reading media', {
         label: 'Hardcover',
         mediaSubtype,
         mediaId,
         errorMessage: error instanceof Error ? error.message : String(error),
       });
 
-      return next({
-        status: 500,
-        message: 'Unable to retrieve related reading media.',
+      return res.status(200).json({
+        page: 1,
+        totalPages: 1,
+        totalResults: 0,
+        results: [],
       });
     }
   };
@@ -134,7 +137,7 @@ export const registerReadingMediaRelatedRoutes = (
     createRelatedListHandler(
       config.mediaSubtype,
       config.mediaType,
-      async (client, mediaId, _authorName, _foreignAuthorId) =>
+      async (client, mediaId) =>
         client.getSimilarBooks(
           mediaId,
           config.mediaSubtype,

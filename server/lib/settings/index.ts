@@ -110,6 +110,8 @@ export interface BookDownloaderSettings extends DVRSettings {
   provider: BookDownloaderProvider;
   mediaSubtype: BookDownloaderSubtype;
   hardcoverApiToken?: string;
+  activeMetadataProfileId?: number;
+  activeMetadataProfileName?: string;
 }
 
 export interface ComicDownloaderSettings extends DVRSettings {

@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-28 — phase2: Bookshelf (Readarr) downloader integration
+
+- Files: `server/api/downloaders/readarr/*`, `server/api/downloaders/factory.ts`, `server/lib/settings/index.ts`, `server/routes/settings/bookDownloader.ts`, `src/components/Settings/{BookDownloaderModal,SettingsServices}.tsx`, `seerr-api.yml`, `tasks/todo.md`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (6/6 readarr lookup tests); lint pre-existing failures only (unrelated files)
+- Notes: Readarr adapter uses `POST /api/v1/book` with quality + metadata profiles and root folder; resolves `hc:` Hardcover IDs via Bookshelf `/book/lookup` (`edition:{id}`); provider selector in settings (Bookshelf/Readarr vs Bindery); retry failed requests after reconfiguring
+
 ## 2026-05-27 — phase3: fix book detail related sliders (author + similar)
 
 - Files: `server/api/metadata/hardcover/client.ts`, `server/routes/reading/registerReadingMediaRelatedRoutes.ts`, `src/components/{ReadingDetails,Discover/ReadingMediaSlider,ServiceWorkerSetup}/index.tsx`, `seerr-api.yml`

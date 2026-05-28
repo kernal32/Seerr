@@ -16,6 +16,7 @@ type OptionType = { value: number; label: string };
 
 export type BookDownloaderTestResponse = {
   profiles: { id: number; name: string }[];
+  metadataProfiles?: { id: number; name: string }[];
   rootFolders: { id: number; path: string }[];
   urlBase?: string;
 };
@@ -29,6 +30,18 @@ const messages = defineMessages('components.Settings.BookDownloaderModal', {
   validationApiKeyRequired: 'You must provide an API key',
   validationRootFolderRequired: 'You must select a root folder',
   validationProfileRequired: 'You must select a quality profile',
+  validationMetadataProfileRequired: 'You must select a metadata profile',
+  provider: 'Downloader Type',
+  providerReadarr: 'Bookshelf / Readarr',
+  providerBindery: 'Bindery',
+  metadataprofile: 'Metadata Profile',
+  selectMetadataProfile: 'Select metadata profile',
+  testFirstMetadataProfiles: 'Test connection to load metadata profiles',
+  portBookshelfHint: 'Bookshelf default port is 8787',
+  hardcoverApiToken:
+    'Optional Hardcover API token for discover/search in Bookarr (not sent to Bookshelf).',
+  hardcoverApiTokenHelp:
+    'Paste the Hardcover API token only (no "Bearer " prefix). Use the same token as Bookshelf METADATA_AUTH when running the :hardcover image.',
   toastTestSuccess: 'Book downloader connection established successfully!',
   toastTestFailure: 'Failed to connect to book downloader.',
   toastSaveFailure: 'Failed to save book downloader.',
@@ -53,10 +66,6 @@ const messages = defineMessages('components.Settings.BookDownloaderModal', {
   loadingrootfolders: 'Loading root folders…',
   testFirstRootFolders: 'Test connection to load root folders',
   enableSearch: 'Enable Automatic Search',
-  hardcoverApiToken:
-    'Optional Hardcover API token for discover/search when Bindery metadata search is unavailable.',
-  hardcoverApiTokenHelp:
-    'Paste the Hardcover API token only (no "Bearer " prefix). Same token as Bindery → External API Keys. Required for Bookarr search while OpenLibrary blocks Bindery.',
   hardcoverApiTokenConfigured:
     'A Hardcover token is already saved. Leave blank to keep it, or enter a new token to replace it.',
 });
@@ -79,6 +88,7 @@ const BookDownloaderModal = ({
   const [isTesting, setIsTesting] = useState(false);
   const [testResponse, setTestResponse] = useState<BookDownloaderTestResponse>({
     profiles: [],
+    metadataProfiles: [],
     rootFolders: [],
   });
 
@@ -101,6 +111,19 @@ const BookDownloaderModal = ({
     activeProfileId: Yup.number()
       .min(1, intl.formatMessage(messages.validationProfileRequired))
       .required(intl.formatMessage(messages.validationProfileRequired)),
+    activeMetadataProfileId: Yup.number().when('provider', {
+      is: 'readarr',
+      then: (schemaField) =>
+        schemaField
+          .min(
+            1,
+            intl.formatMessage(messages.validationMetadataProfileRequired)
+          )
+          .required(
+            intl.formatMessage(messages.validationMetadataProfileRequired)
+          ),
+      otherwise: (schemaField) => schemaField.optional(),
+    }),
   });
 
   const testConnection = useCallback(
@@ -110,12 +133,14 @@ const BookDownloaderModal = ({
       apiKey,
       baseUrl,
       useSsl = false,
+      provider = 'readarr',
     }: {
       hostname: string;
       port: number | string;
       apiKey: string;
       baseUrl?: string;
       useSsl?: boolean;
+      provider?: BookDownloaderSettings['provider'];
     }) => {
       setIsTesting(true);
       try {
@@ -127,6 +152,7 @@ const BookDownloaderModal = ({
             port: Number(port),
             baseUrl,
             useSsl,
+            provider,
           }
         );
         setTestResponse(response.data);
@@ -157,6 +183,7 @@ const BookDownloaderModal = ({
         apiKey: downloader.apiKey,
         baseUrl: downloader.baseUrl,
         useSsl: downloader.useSsl,
+        provider: downloader.provider ?? 'readarr',
       });
     }
   }, [downloader, testConnection]);
@@ -180,9 +207,11 @@ const BookDownloaderModal = ({
     preventSearch: false,
     tagRequests: false,
     overrideRule: [],
-    provider: 'bindery',
+    provider: 'readarr',
     mediaSubtype: 'book',
     hardcoverApiToken: '',
+    activeMetadataProfileId: 0,
+    activeMetadataProfileName: '',
   };
 
   return (
@@ -225,8 +254,16 @@ const BookDownloaderModal = ({
               preventSearch: values.preventSearch,
               tagRequests: values.tagRequests,
               overrideRule: values.overrideRule ?? [],
-              provider: 'bindery' as const,
+              provider: values.provider,
               mediaSubtype: values.mediaSubtype,
+              activeMetadataProfileId:
+                values.provider === 'readarr'
+                  ? Number(values.activeMetadataProfileId)
+                  : undefined,
+              activeMetadataProfileName:
+                values.provider === 'readarr'
+                  ? values.activeMetadataProfileName
+                  : undefined,
               hardcoverApiToken:
                 values.hardcoverApiToken?.trim() ||
                 downloader?.hardcoverApiToken ||
@@ -264,6 +301,9 @@ const BookDownloaderModal = ({
             const profileOptions: OptionType[] = testResponse.profiles.map(
               (profile) => ({ value: profile.id, label: profile.name })
             );
+            const metadataProfileOptions: OptionType[] = (
+              testResponse.metadataProfiles ?? []
+            ).map((profile) => ({ value: profile.id, label: profile.name }));
             const folderOptions = testResponse.rootFolders.map((folder) => ({
               value: folder.path,
               label: folder.path,
@@ -296,6 +336,32 @@ const BookDownloaderModal = ({
                   </label>
                   <div className="form-input-area">
                     <Field id="port" name="port" type="text" />
+                    <span className="help-text">
+                      {intl.formatMessage(messages.portBookshelfHint)}
+                    </span>
+                  </div>
+                </div>
+                <div className="form-row">
+                  <label htmlFor="provider" className="text-label">
+                    {intl.formatMessage(messages.provider)}
+                  </label>
+                  <div className="form-input-area">
+                    <Field
+                      as="select"
+                      id="provider"
+                      name="provider"
+                      onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
+                        setIsValidated(false);
+                        setFieldValue('provider', e.target.value);
+                      }}
+                    >
+                      <option value="readarr">
+                        {intl.formatMessage(messages.providerReadarr)}
+                      </option>
+                      <option value="bindery">
+                        {intl.formatMessage(messages.providerBindery)}
+                      </option>
+                    </Field>
                   </div>
                 </div>
                 <div className="form-row">
@@ -377,6 +443,7 @@ const BookDownloaderModal = ({
                         apiKey: values.apiKey,
                         baseUrl: values.baseUrl,
                         useSsl: values.useSsl,
+                        provider: values.provider,
                       })
                     }
                     disabled={isTesting}
@@ -387,6 +454,41 @@ const BookDownloaderModal = ({
                 </div>
                 {isValidated && (
                   <>
+                    {values.provider === 'readarr' && (
+                      <div className="form-row">
+                        <label className="text-label">
+                          {intl.formatMessage(messages.metadataprofile)}
+                        </label>
+                        <div className="form-input-area">
+                          <Select
+                            options={metadataProfileOptions}
+                            placeholder={
+                              metadataProfileOptions.length
+                                ? intl.formatMessage(
+                                    messages.selectMetadataProfile
+                                  )
+                                : intl.formatMessage(
+                                    messages.testFirstMetadataProfiles
+                                  )
+                            }
+                            value={metadataProfileOptions.find(
+                              (option) =>
+                                option.value === values.activeMetadataProfileId
+                            )}
+                            onChange={(option) => {
+                              setFieldValue(
+                                'activeMetadataProfileId',
+                                option?.value ?? 0
+                              );
+                              setFieldValue(
+                                'activeMetadataProfileName',
+                                option?.label ?? ''
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <div className="form-row">
                       <label className="text-label">
                         {intl.formatMessage(messages.qualityprofile)}
