@@ -29,6 +29,20 @@ export const mapReadingRouteError = (
     return { status: 503, message: context.notConfiguredMessage };
   }
 
+  if (
+    error instanceof Error &&
+    error.message.includes('Hardcover API token is not configured')
+  ) {
+    return {
+      status: 503,
+      message: 'Hardcover API token is not configured on the book downloader.',
+    };
+  }
+
+  if (error instanceof Error && error.message.includes('Book not found')) {
+    return { status: 404, message: 'Reading media not found.' };
+  }
+
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;
     const upstreamError = extractUpstreamError(error.response?.data);

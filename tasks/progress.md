@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-28 — phase2: fix audiobook hc: detail 500s (Hardcover token fallback)
+
+- Files: `server/api/downloaders/hardcoverClientForDownloader.ts`, `server/api/downloaders/{readarr,bindery}/adapter.ts`, `server/routes/reading/errors.ts`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (9/9 downloader tests)
+- Notes: Audiobook adapter now uses shared Hardcover token from book downloader; hc: IDs no longer fall through to Bookshelf lookup; missing token/not found return 503/404 instead of 500
+
 ## 2026-05-28 — phase2: Bookshelf (Readarr) downloader integration
 
 - Files: `server/api/downloaders/readarr/*`, `server/api/downloaders/factory.ts`, `server/lib/settings/index.ts`, `server/routes/settings/bookDownloader.ts`, `src/components/Settings/{BookDownloaderModal,SettingsServices}.tsx`, `seerr-api.yml`, `tasks/todo.md`

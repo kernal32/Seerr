@@ -8,9 +8,9 @@ import type {
   MediaDetails,
   SearchResult,
 } from '@server/api/downloaders/types';
+import { hardcoverClientForDownloader } from '@server/api/downloaders/hardcoverClientForDownloader';
 import HardcoverClient from '@server/api/metadata/hardcover/client';
 import { HARDCOVER_ID_PREFIX } from '@server/api/metadata/hardcover/constants';
-import { normalizeHardcoverApiToken } from '@server/api/metadata/hardcover/normalizeToken';
 import { MediaType } from '@server/constants/media';
 import type { BookDownloaderSettings } from '@server/lib/settings';
 
@@ -56,12 +56,7 @@ export class BinderyAdapter implements DownloaderAdapter {
         ? MediaType.AUDIOBOOK
         : MediaType.BOOK;
     this.mediaSubtype = settings.mediaSubtype;
-
-    if (settings.hardcoverApiToken?.trim()) {
-      this.hardcover = new HardcoverClient(
-        normalizeHardcoverApiToken(settings.hardcoverApiToken)
-      );
-    }
+    this.hardcover = hardcoverClientForDownloader(settings);
   }
 
   public async testConnection(): Promise<void> {
@@ -79,8 +74,14 @@ export class BinderyAdapter implements DownloaderAdapter {
   }
 
   public async getDetails(id: string): Promise<MediaDetails> {
-    if (id.startsWith(HARDCOVER_ID_PREFIX) && this.hardcover) {
-      return this.hardcover.getDetails(id, this.mediaType);
+    if (id.startsWith(HARDCOVER_ID_PREFIX)) {
+      if (this.hardcover) {
+        return this.hardcover.getDetails(id, this.mediaType);
+      }
+
+      throw new Error(
+        'Hardcover API token is not configured on the book downloader.'
+      );
     }
 
     const numericId = Number(id);
