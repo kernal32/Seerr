@@ -1,6 +1,10 @@
 import type { MediaDetails, SearchResult } from '@server/api/downloaders/types';
 import type { MediaType } from '@server/constants/media';
 import axios from 'axios';
+import {
+  buildBookshelfLookupTermsFromHardcover,
+  type HardcoverBookLookupHint,
+} from './bookshelfLookupHints';
 import { HARDCOVER_GRAPHQL_URL, HARDCOVER_ID_PREFIX } from './constants';
 import { normalizeHardcoverApiToken } from './normalizeToken';
 import {
@@ -407,6 +411,69 @@ class HardcoverClient {
     return {
       ...mapped,
       author: mapped.subtitle,
+    };
+  }
+
+  public async getBookshelfLookupHints(
+    foreignId: string,
+    mediaSubtype: 'book' | 'audiobook'
+  ): Promise<{ title: string; authorName?: string; terms: string[] }> {
+    const lookupId = foreignId.startsWith(HARDCOVER_ID_PREFIX)
+      ? foreignId.slice(HARDCOVER_ID_PREFIX.length)
+      : foreignId;
+    const numericId = Number(lookupId);
+    const useNumericId =
+      !Number.isNaN(numericId) && String(numericId) === lookupId;
+
+    const response = await this.query<{ books: HardcoverBookLookupHint[] }>(
+      useNumericId
+        ? `query GetBookEditions($id: Int!) {
+            books(where: {id: {_eq: $id}}, limit: 1) {
+              id
+              title
+              editions(limit: 50) {
+                id
+                edition_format
+              }
+              contributions {
+                author { name }
+              }
+            }
+          }`
+        : `query GetBookEditions($slug: String!) {
+            books(where: {slug: {_eq: $slug}}, limit: 1) {
+              id
+              title
+              editions(limit: 50) {
+                id
+                edition_format
+              }
+              contributions {
+                author { name }
+              }
+            }
+          }`,
+      useNumericId ? { id: numericId } : { slug: lookupId }
+    );
+
+    const book = response.books[0];
+
+    if (!book?.title?.trim()) {
+      throw new Error('Book not found');
+    }
+
+    const authorName = book.contributions
+      ?.map((entry) => entry.author?.name?.trim())
+      .find(Boolean);
+
+    return {
+      title: book.title.trim(),
+      authorName,
+      terms: buildBookshelfLookupTermsFromHardcover(
+        book,
+        mediaSubtype,
+        authorName
+      ),
     };
   }
 

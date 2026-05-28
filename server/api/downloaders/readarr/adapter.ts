@@ -138,12 +138,51 @@ export class ReadarrAdapter implements DownloaderAdapter {
     }
   }
 
+  private async buildLookupTerms(
+    metadataId: string,
+    title?: string,
+    foreignAuthorId?: string
+  ): Promise<string[]> {
+    const terms = buildReadarrLookupTerms(metadataId, title);
+
+    if (this.hardcover && metadataId.startsWith(HARDCOVER_ID_PREFIX)) {
+      try {
+        const hints = await this.hardcover.getBookshelfLookupHints(
+          metadataId,
+          this.mediaSubtype
+        );
+
+        for (const term of hints.terms) {
+          if (!terms.includes(term)) {
+            terms.unshift(term);
+          }
+        }
+      } catch {
+        // Hardcover edition hints are optional enrichment for Bookshelf lookup
+      }
+    }
+
+    if (
+      foreignAuthorId &&
+      title?.trim() &&
+      !terms.some((term) => term.includes(title.trim()))
+    ) {
+      terms.push(title.trim());
+    }
+
+    return terms;
+  }
+
   private async resolveLookupBook(
     metadataId: string,
     title: string | undefined,
     foreignAuthorId?: string
   ): Promise<ReadarrLookupBook | null> {
-    const terms = buildReadarrLookupTerms(metadataId, title);
+    const terms = await this.buildLookupTerms(
+      metadataId,
+      title,
+      foreignAuthorId
+    );
 
     for (const term of terms) {
       const results = await this.client.lookupBooks(term);
@@ -184,7 +223,7 @@ export class ReadarrAdapter implements DownloaderAdapter {
 
     if (!lookup) {
       throw new Error(
-        `Book not found in Bookshelf metadata for "${payload.metadataId}"`
+        `Book not found in Bookshelf metadata for "${payload.metadataId}". Try searching for the title in Bookshelf manually to confirm the Hardcover edition exists.`
       );
     }
 

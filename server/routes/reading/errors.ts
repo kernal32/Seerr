@@ -39,6 +39,16 @@ export const mapReadingRouteError = (
     };
   }
 
+  if (
+    error instanceof Error &&
+    error.message.includes('Book not found in Bookshelf metadata')
+  ) {
+    return {
+      status: 502,
+      message: error.message,
+    };
+  }
+
   if (error instanceof Error && error.message.includes('Book not found')) {
     return { status: 404, message: 'Reading media not found.' };
   }

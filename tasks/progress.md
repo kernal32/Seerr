@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-28 — phase2: fix Bookshelf add dispatch (edition lookup + search checkbox)
+
+- Files: `server/api/metadata/hardcover/bookshelfLookupHints.ts`, `server/api/metadata/hardcover/client.ts`, `server/api/downloaders/readarr/adapter.ts`, `src/components/Settings/BookDownloaderModal/index.tsx`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (8/8)
+- Notes: Resolve hc: IDs via Hardcover edition IDs before Bookshelf /book/lookup; fix inverted Enable Automatic Search checkbox (was setting preventSearch=true when checked)
+
 ## 2026-05-28 — phase2: fix audiobook hc: detail 500s (Hardcover token fallback)
 
 - Files: `server/api/downloaders/hardcoverClientForDownloader.ts`, `server/api/downloaders/{readarr,bindery}/adapter.ts`, `server/routes/reading/errors.ts`

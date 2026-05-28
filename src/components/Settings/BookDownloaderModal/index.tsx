@@ -70,6 +70,10 @@ const messages = defineMessages('components.Settings.BookDownloaderModal', {
     'A Hardcover token is already saved. Leave blank to keep it, or enter a new token to replace it.',
 });
 
+interface BookDownloaderFormValues extends BookDownloaderSettings {
+  enableSearch: boolean;
+}
+
 interface BookDownloaderModalProps {
   downloader: BookDownloaderSettings | null;
   onClose: () => void;
@@ -188,30 +192,33 @@ const BookDownloaderModal = ({
     }
   }, [downloader, testConnection]);
 
-  const initialValues: BookDownloaderSettings = downloader ?? {
-    id: 0,
-    name: '',
-    hostname: '',
-    port: 8787,
-    apiKey: '',
-    useSsl: false,
-    baseUrl: '',
-    activeProfileId: 0,
-    activeProfileName: '',
-    activeDirectory: '',
-    tags: [],
-    is4k: false,
-    isDefault: true,
-    externalUrl: '',
-    syncEnabled: false,
-    preventSearch: false,
-    tagRequests: false,
-    overrideRule: [],
-    provider: 'readarr',
-    mediaSubtype: 'book',
-    hardcoverApiToken: '',
-    activeMetadataProfileId: 0,
-    activeMetadataProfileName: '',
+  const initialValues: BookDownloaderFormValues = {
+    ...(downloader ?? {
+      id: 0,
+      name: '',
+      hostname: '',
+      port: 8787,
+      apiKey: '',
+      useSsl: false,
+      baseUrl: '',
+      activeProfileId: 0,
+      activeProfileName: '',
+      activeDirectory: '',
+      tags: [],
+      is4k: false,
+      isDefault: true,
+      externalUrl: '',
+      syncEnabled: false,
+      preventSearch: false,
+      tagRequests: false,
+      overrideRule: [],
+      provider: 'readarr' as const,
+      mediaSubtype: 'book' as const,
+      hardcoverApiToken: '',
+      activeMetadataProfileId: 0,
+      activeMetadataProfileName: '',
+    }),
+    enableSearch: downloader ? !downloader.preventSearch : true,
   };
 
   return (
@@ -251,7 +258,7 @@ const BookDownloaderModal = ({
               isDefault: values.isDefault,
               externalUrl: values.externalUrl,
               syncEnabled: values.syncEnabled,
-              preventSearch: values.preventSearch,
+              preventSearch: !values.enableSearch,
               tagRequests: values.tagRequests,
               overrideRule: values.overrideRule ?? [],
               provider: values.provider,
@@ -557,7 +564,7 @@ const BookDownloaderModal = ({
                 </div>
                 <div className="form-row">
                   <label className="checkbox-label">
-                    <Field type="checkbox" name="preventSearch" />
+                    <Field type="checkbox" name="enableSearch" />
                     {intl.formatMessage(messages.enableSearch)}
                   </label>
                 </div>
