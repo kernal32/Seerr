@@ -233,6 +233,7 @@ export class ReadarrAdapter implements DownloaderAdapter {
       rootFolderPath,
       searchOnAdd: payload.searchOnAdd ?? true,
       tags: payload.tags,
+      fallbackForeignAuthorId: payload.foreignAuthorId,
     });
 
     const added = await this.client.addBook(addPayload);

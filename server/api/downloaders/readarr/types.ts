@@ -39,6 +39,7 @@ export interface ReadarrLookupBook {
   id?: number;
   foreignBookId: string;
   title: string;
+  foreignAuthorId?: string;
   author?: {
     foreignAuthorId: string;
     authorName?: string;

@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-28 — phase2: fix Bookshelf add missing author foreignAuthorId
+
+- Files: `server/api/downloaders/readarr/{buildAddPayload,normalizeForeignId,adapter,types}.ts`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (buildAddPayload tests)
+- Notes: Bookshelf /book/lookup often omits nested author; fall back to Hardcover foreignAuthorId from request and strip hc: prefix for Bookshelf metadata
+
 ## 2026-05-28 — phase2: fix Bookshelf add dispatch (edition lookup + search checkbox)
 
 - Files: `server/api/metadata/hardcover/bookshelfLookupHints.ts`, `server/api/metadata/hardcover/client.ts`, `server/api/downloaders/readarr/adapter.ts`, `src/components/Settings/BookDownloaderModal/index.tsx`

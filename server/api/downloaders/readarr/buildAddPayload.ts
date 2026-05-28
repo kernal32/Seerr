@@ -1,4 +1,5 @@
 import type { ReadarrAddBookPayload, ReadarrLookupBook } from './types';
+import { toBookshelfForeignId } from './normalizeForeignId';
 
 export const buildReadarrAddPayload = (
   book: ReadarrLookupBook,
@@ -8,15 +9,21 @@ export const buildReadarrAddPayload = (
     rootFolderPath: string;
     searchOnAdd: boolean;
     tags?: number[];
+    fallbackForeignAuthorId?: string;
   }
 ): ReadarrAddBookPayload => {
-  const foreignAuthorId = book.author?.foreignAuthorId;
+  const rawAuthorId =
+    book.author?.foreignAuthorId ??
+    book.foreignAuthorId ??
+    options.fallbackForeignAuthorId;
 
-  if (!foreignAuthorId) {
+  if (!rawAuthorId) {
     throw new Error(
       'Bookshelf lookup result is missing author foreignAuthorId'
     );
   }
+
+  const foreignAuthorId = toBookshelfForeignId(rawAuthorId);
 
   const monitoredEdition =
     book.editions?.find((edition) => edition.monitored) ?? book.editions?.[0];
