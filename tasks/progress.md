@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-28 — phase2: fix Bookshelf POST /book 500 (full lookup payload)
+
+- Files: `server/api/downloaders/readarr/{buildAddPayload,formatClientError,client,types,adapter}.ts`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (4/4 buildAddPayload tests)
+- Notes: Pass through Bookshelf lookup metadata (authorName, editions) on add; surface Bookshelf HTTP error body in logs
+
 ## 2026-05-28 — phase2: fix Bookshelf add missing author foreignAuthorId
 
 - Files: `server/api/downloaders/readarr/{buildAddPayload,normalizeForeignId,adapter,types}.ts`

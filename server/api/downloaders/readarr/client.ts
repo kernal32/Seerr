@@ -1,6 +1,7 @@
 import ExternalAPI from '@server/api/externalapi';
 import ServarrBase from '@server/api/servarr/base';
 import type { BookDownloaderSettings } from '@server/lib/settings';
+import { formatReadarrClientError } from './formatClientError';
 import type {
   ReadarrAddBookPayload,
   ReadarrAddBookResponse,
@@ -65,14 +66,18 @@ class ReadarrClient extends ExternalAPI {
     });
   }
 
-  public addBook(
+  public async addBook(
     payload: ReadarrAddBookPayload
   ): Promise<ReadarrAddBookResponse> {
-    return this.post<ReadarrAddBookResponse>(
-      '/book',
-      // REASON: ExternalAPI.post expects Record<string, unknown>; Servarr body has no index signature
-      payload as unknown as Record<string, unknown>
-    );
+    try {
+      return await this.post<ReadarrAddBookResponse>(
+        '/book',
+        // REASON: ExternalAPI.post expects Record<string, unknown>; Servarr body has no index signature
+        payload as unknown as Record<string, unknown>
+      );
+    } catch (error) {
+      throw formatReadarrClientError(error);
+    }
   }
 
   public getRootFolders(): Promise<ReadarrRootFolder[]> {

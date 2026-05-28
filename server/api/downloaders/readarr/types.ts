@@ -32,6 +32,7 @@ export interface ReadarrBookSearchResult {
 export interface ReadarrLookupEdition {
   foreignEditionId: string;
   monitored?: boolean;
+  manualAdd?: boolean;
   title?: string;
 }
 
@@ -40,8 +41,10 @@ export interface ReadarrLookupBook {
   foreignBookId: string;
   title: string;
   foreignAuthorId?: string;
+  foreignEditionId?: string;
+  authorTitle?: string;
   author?: {
-    foreignAuthorId: string;
+    foreignAuthorId?: string;
     authorName?: string;
   };
   editions?: ReadarrLookupEdition[];
@@ -49,6 +52,7 @@ export interface ReadarrLookupBook {
 
 export interface ReadarrAddBookAuthor {
   foreignAuthorId: string;
+  authorName: string;
   qualityProfileId: number;
   metadataProfileId: number;
   rootFolderPath: string;
@@ -58,15 +62,9 @@ export interface ReadarrAddBookAuthor {
   };
 }
 
-export interface ReadarrAddBookPayload {
-  foreignBookId: string;
+export interface ReadarrAddBookPayload extends ReadarrLookupBook {
   monitored: boolean;
   author: ReadarrAddBookAuthor;
-  editions?: {
-    foreignEditionId: string;
-    monitored: boolean;
-    manualAdd?: boolean;
-  }[];
   addOptions?: {
     searchForNewBook?: boolean;
   };
