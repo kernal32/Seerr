@@ -31,6 +31,8 @@ describe('buildReadarrAddPayload', () => {
 
     assert.equal(payload.author.foreignAuthorId, 'james-s-a-corey');
     assert.equal(payload.author.authorName, 'James S. A. Corey');
+    assert.equal(payload.author.addOptions?.monitor, 'none');
+    assert.deepEqual(payload.author.addOptions?.booksToMonitor, ['30421421']);
     assert.equal(payload.foreignBookId, '30421421');
     assert.equal(payload.addOptions?.searchForNewBook, true);
   });

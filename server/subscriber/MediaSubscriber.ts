@@ -66,6 +66,13 @@ export class MediaSubscriber implements EntitySubscriberInterface<Media> {
           event.mediaType === MediaType.MOVIE
         ) {
           shouldComplete = true;
+        } else if (
+          event.mediaType === MediaType.BOOK ||
+          event.mediaType === MediaType.AUDIOBOOK
+        ) {
+          shouldComplete =
+            event.status === MediaStatus.AVAILABLE ||
+            event.status === MediaStatus.DELETED;
         } else if (event.mediaType === 'tv') {
           const allSeasonResults = await Promise.all(
             request.seasons.map(async (requestSeason) => {
@@ -180,7 +187,7 @@ export class MediaSubscriber implements EntitySubscriberInterface<Media> {
           seasonStatusCheck(false))) &&
       validStatuses.includes(event.entity.status)
     ) {
-      this.updateRelatedMediaRequest(
+      await this.updateRelatedMediaRequest(
         event.entity as Media,
         event.databaseEntity as Media,
         false
@@ -192,7 +199,7 @@ export class MediaSubscriber implements EntitySubscriberInterface<Media> {
         (event.entity.mediaType === MediaType.TV && seasonStatusCheck(true))) &&
       validStatuses.includes(event.entity.status4k)
     ) {
-      this.updateRelatedMediaRequest(
+      await this.updateRelatedMediaRequest(
         event.entity as Media,
         event.databaseEntity as Media,
         true

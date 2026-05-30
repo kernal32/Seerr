@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-28 — phase6: Book availability tracking (Bookshelf poll + request completion)
+
+- Files: `server/lib/scanners/readarr/{index,processBookStatus,processBookStatus.test}.ts`, `server/api/downloaders/readarr/types.ts`, `server/subscriber/{MediaSubscriber,MediaSubscriber.test}.ts`, `server/job/schedule.ts`, `server/lib/settings/index.ts`, `src/components/ReadingDetails/index.tsx`, `tasks/todo.md`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (full suite), new unit tests for processBookStatus + MediaSubscriber book completion
+- Notes: `readarr-scan` job polls Bookshelf every 10 min for PROCESSING book/audiobook rows; flips to AVAILABLE when `statistics.bookFileCount > 0`; MediaSubscriber completes requests; ReadingDetails shows status badge
+
 ## 2026-05-28 — phase2: fix Bookshelf POST /book 500 (full lookup payload)
 
 - Files: `server/api/downloaders/readarr/{buildAddPayload,formatClientError,client,types,adapter}.ts`

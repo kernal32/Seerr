@@ -59,6 +59,8 @@ export interface ReadarrAddBookAuthor {
   monitored: boolean;
   addOptions?: {
     searchForMissingBooks?: boolean;
+    monitor?: 'none' | 'all' | 'future' | 'missing' | 'existing' | 'latest' | 'first';
+    booksToMonitor?: string[];
   };
 }
 
@@ -77,6 +79,13 @@ export interface ReadarrAddBookResponse {
   title: string;
 }
 
+export interface ReadarrBookStatistics {
+  bookFileCount: number;
+  bookCount?: number;
+  totalBookCount?: number;
+  sizeOnDisk?: number;
+}
+
 export interface ReadarrBook {
   id: number;
   foreignBookId: string;
@@ -84,6 +93,8 @@ export interface ReadarrBook {
   description?: string;
   imageUrl?: string;
   releaseDate?: string;
+  monitored?: boolean;
+  statistics?: ReadarrBookStatistics;
   author?: {
     authorName: string;
     foreignAuthorId: string;

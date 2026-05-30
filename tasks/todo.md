@@ -38,7 +38,7 @@
 
 ## Phase 6 — Availability sync
 
-- [ ] Poll downstream downloaders for reading media status updates
+- [x] Poll downstream downloaders for reading media status updates
 
 ## Phase 7 — Permissions (follow-up)
 

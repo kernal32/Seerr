@@ -1,6 +1,7 @@
 import Button from '@app/components/Common/Button';
 import Header from '@app/components/Common/Header';
 import PageTitle from '@app/components/Common/PageTitle';
+import StatusBadgeMini from '@app/components/Common/StatusBadgeMini';
 import ReadingMediaSlider from '@app/components/Discover/ReadingMediaSlider';
 import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
@@ -99,11 +100,17 @@ const ReadingDetails = ({
       ? currentSettings.booksEnabled
       : currentSettings.audiobooksEnabled;
 
+  const mediaStatus = data.mediaInfo?.status;
+  const showStatusBadge =
+    mediaStatus === MediaStatus.PROCESSING ||
+    mediaStatus === MediaStatus.AVAILABLE;
+
   const canRequest =
     enabled &&
     isEnabled &&
     hasPermission(Permission.REQUEST) &&
-    data.mediaInfo?.status !== MediaStatus.AVAILABLE;
+    mediaStatus !== MediaStatus.AVAILABLE &&
+    mediaStatus !== MediaStatus.PROCESSING;
 
   const authorName = data.author ?? data.subtitle;
   const authorBooksUrl =
@@ -122,7 +129,12 @@ const ReadingDetails = ({
           )}
         </div>
         <div className="media-title">
-          <Header>{data.title}</Header>
+          <div className="flex items-center gap-2">
+            <Header>{data.title}</Header>
+            {showStatusBadge && mediaStatus && (
+              <StatusBadgeMini status={mediaStatus} />
+            )}
+          </div>
           {data.subtitle && (
             <span className="media-status mb-4 block text-gray-400">
               {data.subtitle}

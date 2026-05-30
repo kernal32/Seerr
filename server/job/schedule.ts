@@ -10,6 +10,7 @@ import {
 } from '@server/lib/scanners/jellyfin';
 import { plexFullScanner, plexRecentScanner } from '@server/lib/scanners/plex';
 import { radarrScanner } from '@server/lib/scanners/radarr';
+import { readarrScanner } from '@server/lib/scanners/readarr';
 import { sonarrScanner } from '@server/lib/scanners/sonarr';
 import type { JobId } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
@@ -160,6 +161,21 @@ export const startJobs = (): void => {
     }),
     running: () => radarrScanner.status().running,
     cancelFn: () => radarrScanner.cancel(),
+  });
+
+  // Poll Bookshelf/Readarr for processing book and audiobook requests
+  scheduledJobs.push({
+    id: 'readarr-scan',
+    name: 'Readarr Scan',
+    type: 'process',
+    interval: 'minutes',
+    cronSchedule: jobs['readarr-scan'].schedule,
+    job: schedule.scheduleJob(jobs['readarr-scan'].schedule, () => {
+      logger.info('Starting scheduled job: Readarr Scan', { label: 'Jobs' });
+      readarrScanner.run();
+    }),
+    running: () => readarrScanner.status().running,
+    cancelFn: () => readarrScanner.cancel(),
   });
 
   // Run full sonarr scan every 24 hours

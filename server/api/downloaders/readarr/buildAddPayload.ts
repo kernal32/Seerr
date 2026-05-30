@@ -115,6 +115,8 @@ export const buildReadarrAddPayload = (
       monitored: true,
       addOptions: {
         searchForMissingBooks: false,
+        monitor: 'none',
+        booksToMonitor: [lookup.foreignBookId],
       },
     },
     addOptions: {

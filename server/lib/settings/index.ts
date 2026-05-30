@@ -412,6 +412,7 @@ export type JobId =
   | 'plex-watchlist-sync'
   | 'plex-refresh-token'
   | 'radarr-scan'
+  | 'readarr-scan'
   | 'sonarr-scan'
   | 'download-sync'
   | 'download-sync-reset'
@@ -647,6 +648,9 @@ class Settings {
         },
         'radarr-scan': {
           schedule: '0 0 4 * * *',
+        },
+        'readarr-scan': {
+          schedule: '0 */10 * * * *',
         },
         'sonarr-scan': {
           schedule: '0 30 4 * * *',
