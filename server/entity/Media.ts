@@ -1,5 +1,7 @@
 import RadarrAPI from '@server/api/servarr/radarr';
 import SonarrAPI from '@server/api/servarr/sonarr';
+import ReadarrClient from '@server/api/downloaders/readarr/client';
+import Mylar3Client from '@server/api/downloaders/mylar3/client';
 import { MediaStatus, MediaType } from '@server/constants/media';
 import { MediaServerType } from '@server/constants/server';
 import { getRepository } from '@server/datasource';
@@ -388,6 +390,44 @@ class Media {
                 server,
                 `/series/${this.externalServiceSlug4k}`
               );
+        }
+      }
+    }
+
+    if (
+      this.mediaType === MediaType.BOOK ||
+      this.mediaType === MediaType.AUDIOBOOK
+    ) {
+      if (this.serviceId !== null && this.externalServiceId !== null) {
+        const settings = getSettings();
+        const server = settings.bookDownloaders.find(
+          (downloader) => downloader.id === this.serviceId
+        );
+
+        if (server) {
+          this.serviceUrl = server.externalUrl
+            ? `${server.externalUrl}/book/${this.externalServiceId}`
+            : ReadarrClient.buildUrl(
+                server,
+                `/book/${this.externalServiceId}`
+              );
+        }
+      }
+    }
+
+    if (this.mediaType === MediaType.COMIC) {
+      if (this.serviceId !== null && this.externalServiceId !== null) {
+        const settings = getSettings();
+        const server = settings.comicDownloaders.find(
+          (downloader) => downloader.id === this.serviceId
+        );
+
+        if (server) {
+          const comicId = this.externalServiceSlug ?? this.externalServiceId;
+
+          this.serviceUrl = server.externalUrl
+            ? `${server.externalUrl}/comicDetails?ComicID=${comicId}`
+            : `${Mylar3Client.buildUrl(server)}/comicDetails?ComicID=${comicId}`;
         }
       }
     }

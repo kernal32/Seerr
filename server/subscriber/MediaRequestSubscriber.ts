@@ -1,7 +1,10 @@
 import {
   getBookDownloaderAdapter,
   getBookDownloaderById,
+  getComicDownloaderAdapter,
+  getComicDownloaderById,
   getDefaultBookDownloader,
+  getDefaultComicDownloader,
 } from '@server/api/downloaders/factory';
 import type { RadarrMovieOptions } from '@server/api/servarr/radarr';
 import RadarrAPI from '@server/api/servarr/radarr';
@@ -593,6 +596,114 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
     }
   }
 
+  public async sendToComicDownloader(entity: MediaRequest): Promise<void> {
+    if (
+      entity.status !== MediaRequestStatus.APPROVED ||
+      entity.type !== MediaType.COMIC
+    ) {
+      return;
+    }
+
+    try {
+      const mediaRepository = getRepository(Media);
+      const defaultDownloader = getDefaultComicDownloader();
+
+      if (!defaultDownloader) {
+        logger.info(
+          'No comic downloader configured, skipping request processing',
+          {
+            label: 'Media Request',
+            requestId: entity.id,
+            mediaId: entity.media.id,
+          }
+        );
+        return;
+      }
+
+      let downloaderSettings = defaultDownloader;
+
+      if (
+        entity.serverId !== null &&
+        entity.serverId >= 0 &&
+        downloaderSettings.id !== entity.serverId
+      ) {
+        downloaderSettings =
+          getComicDownloaderById(entity.serverId) ?? defaultDownloader;
+      }
+
+      const adapter = getComicDownloaderAdapter(downloaderSettings);
+      const media = await mediaRepository.findOne({
+        where: { id: entity.media.id },
+      });
+
+      if (!media?.metadataId) {
+        logger.error('Comic media is missing metadataId', {
+          label: 'Media Request',
+          requestId: entity.id,
+          mediaId: entity.media.id,
+        });
+        return;
+      }
+
+      if (media.status === MediaStatus.AVAILABLE) {
+        const requestRepository = getRepository(MediaRequest);
+        entity.status = MediaRequestStatus.COMPLETED;
+        await requestRepository.save(entity);
+        return;
+      }
+
+      const details = await adapter.getDetails(media.metadataId);
+
+      const result = await adapter.addToLibrary({
+        metadataId: media.metadataId,
+        title: details.title,
+        searchOnAdd: !downloaderSettings.preventSearch,
+        rootFolder: entity.rootFolder ?? downloaderSettings.activeDirectory,
+        profileId: entity.profileId ?? downloaderSettings.activeProfileId,
+      });
+
+      media.externalServiceId = result.externalServiceId;
+      media.externalServiceSlug = result.externalServiceSlug;
+      media.serviceId = downloaderSettings.id;
+      media.status = MediaStatus.PROCESSING;
+
+      if (!media.imdbId && details.foreignAuthorId) {
+        media.imdbId = details.foreignAuthorId;
+      }
+
+      await mediaRepository.save(media);
+
+      logger.info('Sent request to comic downloader', {
+        label: 'Media Request',
+        requestId: entity.id,
+        mediaId: entity.media.id,
+      });
+    } catch (e) {
+      const requestRepository = getRepository(MediaRequest);
+      const mediaRepository = getRepository(Media);
+      const media = await mediaRepository.findOne({
+        where: { id: entity.media.id },
+      });
+
+      if (media) {
+        entity.status = MediaRequestStatus.FAILED;
+        await requestRepository.save(entity);
+
+        logger.warn(
+          'Failed to send comic request to downloader, marking status as FAILED',
+          {
+            label: 'Media Request',
+            requestId: entity.id,
+            mediaId: entity.media.id,
+            errorMessage: e instanceof Error ? e.message : String(e),
+          }
+        );
+
+        MediaRequest.sendNotification(entity, media, Notification.MEDIA_FAILED);
+      }
+    }
+  }
+
   public async sendToSonarr(entity: MediaRequest): Promise<void> {
     if (
       entity.status === MediaRequestStatus.APPROVED &&
@@ -1131,6 +1242,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       await this.sendToRadarr(event.entity as MediaRequest);
       await this.sendToSonarr(event.entity as MediaRequest);
       await this.sendToBookDownloader(event.entity as MediaRequest);
+      await this.sendToComicDownloader(event.entity as MediaRequest);
     } catch (e) {
       logger.error('Error while sending to *arr in afterUpdate subscriber', {
         label: 'Media Request',
@@ -1171,6 +1283,7 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       await this.sendToRadarr(event.entity as MediaRequest);
       await this.sendToSonarr(event.entity as MediaRequest);
       await this.sendToBookDownloader(event.entity as MediaRequest);
+      await this.sendToComicDownloader(event.entity as MediaRequest);
     } catch (e) {
       logger.error('Error while sending to *arr in afterInsert subscriber', {
         label: 'Media Request',

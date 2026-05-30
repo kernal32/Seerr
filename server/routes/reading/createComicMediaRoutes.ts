@@ -1,11 +1,10 @@
 import {
-  getDefaultBookAdapter,
-  getDefaultBookDownloader,
+  getDefaultComicAdapter,
+  getDefaultComicDownloader,
 } from '@server/api/downloaders/factory';
-import type { MediaType } from '@server/constants/media';
+import { MediaType } from '@server/constants/media';
 import { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
-import type { BookDownloaderSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import {
   mapReadingMediaDetails,
@@ -13,24 +12,12 @@ import {
 } from '@server/models/ReadingMedia';
 import { Router } from 'express';
 import { mapReadingRouteError } from './errors';
-import { registerReadingMediaRelatedRoutes } from './registerReadingMediaRelatedRoutes';
 
-export interface ReadingMediaRouteConfig {
-  mediaSubtype: BookDownloaderSettings['mediaSubtype'];
-  mediaType: MediaType;
-  routeLabel: string;
-  notConfiguredMessage: string;
-  searchErrorMessage: string;
-  detailErrorMessage: string;
-}
-
-export const createReadingMediaRoutes = (
-  config: ReadingMediaRouteConfig
-): Router => {
+export const createComicMediaRoutes = (): Router => {
   const router = Router();
 
   router.get('/config/status', (_req, res) => {
-    const configured = !!getDefaultBookDownloader(config.mediaSubtype);
+    const configured = !!getDefaultComicDownloader();
 
     return res.status(200).json({ configured });
   });
@@ -43,13 +30,13 @@ export const createReadingMediaRoutes = (
     }
 
     try {
-      const { adapter } = getDefaultBookAdapter(config.mediaSubtype);
+      const { adapter } = getDefaultComicAdapter();
       const results = await adapter.search(query.trim());
       const media = await Media.getRelatedMediaByMetadataId(
         req.user,
         results.map((result) => ({
           metadataId: result.id,
-          mediaType: config.mediaType,
+          mediaType: MediaType.COMIC,
         }))
       );
 
@@ -61,9 +48,9 @@ export const createReadingMediaRoutes = (
       });
     } catch (error) {
       const mapped = mapReadingRouteError(error, {
-        label: config.routeLabel,
+        label: 'API',
         query,
-        notConfiguredMessage: config.notConfiguredMessage,
+        notConfiguredMessage: 'No comic downloader configured.',
       });
 
       if (mapped) {
@@ -71,9 +58,9 @@ export const createReadingMediaRoutes = (
       }
 
       logger.debug(
-        'Something went wrong retrieving reading media search results',
+        'Something went wrong retrieving comic search results',
         {
-          label: config.routeLabel,
+          label: 'API',
           errorMessage: error instanceof Error ? error.message : String(error),
           query,
         }
@@ -81,26 +68,21 @@ export const createReadingMediaRoutes = (
 
       return next({
         status: 500,
-        message: config.searchErrorMessage,
+        message: 'Unable to retrieve comic search results.',
       });
     }
-  });
-
-  registerReadingMediaRelatedRoutes(router, {
-    mediaSubtype: config.mediaSubtype,
-    mediaType: config.mediaType,
   });
 
   router.get('/:mediaId', async (req, res, next) => {
     const mediaId = decodeURIComponent(req.params.mediaId);
 
     try {
-      const { adapter } = getDefaultBookAdapter(config.mediaSubtype);
+      const { adapter } = getDefaultComicAdapter();
       const details = await adapter.getDetails(mediaId);
       const mediaRepository = getRepository(Media);
 
       const media = await mediaRepository.findOne({
-        where: { metadataId: mediaId, mediaType: config.mediaType },
+        where: { metadataId: mediaId, mediaType: MediaType.COMIC },
         relations: {
           requests: { requestedBy: true, modifiedBy: true },
         },
@@ -111,24 +93,24 @@ export const createReadingMediaRoutes = (
         .json(mapReadingMediaDetails(details, media, mediaId));
     } catch (error) {
       const mapped = mapReadingRouteError(error, {
-        label: config.routeLabel,
+        label: 'API',
         mediaId,
-        notConfiguredMessage: config.notConfiguredMessage,
+        notConfiguredMessage: 'No comic downloader configured.',
       });
 
       if (mapped) {
         return next(mapped);
       }
 
-      logger.debug('Something went wrong retrieving reading media details', {
-        label: config.routeLabel,
+      logger.debug('Something went wrong retrieving comic details', {
+        label: 'API',
         errorMessage: error instanceof Error ? error.message : String(error),
         mediaId,
       });
 
       return next({
         status: 500,
-        message: config.detailErrorMessage,
+        message: 'Unable to retrieve comic.',
       });
     }
   });

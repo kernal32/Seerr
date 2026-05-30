@@ -1,5 +1,11 @@
 import RadarrAPI from '@server/api/servarr/radarr';
 import SonarrAPI from '@server/api/servarr/sonarr';
+import {
+  getBookDownloaderAdapter,
+  getBookDownloaderById,
+  getComicDownloaderAdapter,
+  getComicDownloaderById,
+} from '@server/api/downloaders/factory';
 import TautulliAPI from '@server/api/tautulli';
 import TheMovieDb from '@server/api/themoviedb';
 import { MediaStatus, MediaType } from '@server/constants/media';
@@ -213,6 +219,106 @@ mediaRoutes.delete(
 
       const is4k = String(req.query.is4k) === 'true';
       const isMovie = media.mediaType === MediaType.MOVIE;
+      const isReadingMedia =
+        media.mediaType === MediaType.BOOK ||
+        media.mediaType === MediaType.AUDIOBOOK ||
+        media.mediaType === MediaType.COMIC;
+
+      if (isReadingMedia) {
+        if (media.externalServiceId == null) {
+          return next({
+            status: 404,
+            message: 'Media is not linked to a reading media downloader.',
+          });
+        }
+
+        if (media.mediaType === MediaType.COMIC) {
+          let serviceSettings = settings.comicDownloaders.find(
+            (downloader) => downloader.isDefault && !downloader.is4k
+          );
+
+          if (
+            media.serviceId != null &&
+            media.serviceId >= 0 &&
+            serviceSettings?.id !== media.serviceId
+          ) {
+            serviceSettings = getComicDownloaderById(media.serviceId);
+          }
+
+          if (!serviceSettings) {
+            logger.warn('No comic downloader configured for media removal', {
+              label: 'Media',
+              mediaId: media.id,
+            });
+            return next({
+              status: 404,
+              message: 'Comic downloader is not configured.',
+            });
+          }
+
+          const adapter = getComicDownloaderAdapter(serviceSettings);
+
+          if (!adapter.removeFromLibrary) {
+            return next({
+              status: 501,
+              message: 'This comic downloader does not support removal.',
+            });
+          }
+
+          await adapter.removeFromLibrary({
+            externalServiceId: media.externalServiceId,
+            deleteFiles: false,
+          });
+
+          return res.status(204).send();
+        }
+
+        const mediaSubtype =
+          media.mediaType === MediaType.AUDIOBOOK ? 'audiobook' : 'book';
+
+        let serviceSettings = settings.bookDownloaders.find(
+          (downloader) =>
+            downloader.isDefault &&
+            !downloader.is4k &&
+            downloader.mediaSubtype === mediaSubtype
+        );
+
+        if (
+          media.serviceId != null &&
+          media.serviceId >= 0 &&
+          serviceSettings?.id !== media.serviceId
+        ) {
+          serviceSettings = getBookDownloaderById(media.serviceId);
+        }
+
+        if (!serviceSettings) {
+          logger.warn('No book downloader configured for media removal', {
+            label: 'Media',
+            mediaId: media.id,
+            mediaSubtype,
+          });
+          return next({
+            status: 404,
+            message: 'Book downloader is not configured.',
+          });
+        }
+
+        const adapter = getBookDownloaderAdapter(serviceSettings);
+
+        if (!adapter.removeFromLibrary) {
+          return next({
+            status: 501,
+            message: 'This book downloader does not support removal.',
+          });
+        }
+
+        await adapter.removeFromLibrary({
+          externalServiceId: media.externalServiceId,
+          deleteFiles: false,
+        });
+
+        return res.status(204).send();
+      }
 
       let serviceSettings;
       if (isMovie) {

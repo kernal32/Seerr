@@ -1,8 +1,8 @@
-import DiscoverReadingPlaceholder from '@app/components/Discover/DiscoverReadingPlaceholder';
+import DiscoverComics from '@app/components/Discover/DiscoverComics';
 import type { NextPage } from 'next';
 
 const DiscoverComicsPage: NextPage = () => {
-  return <DiscoverReadingPlaceholder mediaTypeLabel="Comics" />;
+  return <DiscoverComics />;
 };
 
 export default DiscoverComicsPage;

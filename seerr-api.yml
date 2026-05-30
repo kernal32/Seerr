@@ -3180,6 +3180,76 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BookDownloaderSettings'
+  /settings/comicDownloader:
+    get:
+      summary: Get comic downloader settings
+      tags:
+        - settings
+      responses:
+        '200':
+          description: Comic downloader settings returned
+    post:
+      summary: Create comic downloader instance
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Comic downloader instance created
+  /settings/comicDownloader/test:
+    post:
+      summary: Test comic downloader connection
+      tags:
+        - settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Connection successful
+        '500':
+          description: Connection failed
+  /settings/comicDownloader/{id}:
+    put:
+      summary: Update comic downloader instance
+      tags:
+        - settings
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Comic downloader instance updated
+    delete:
+      summary: Delete comic downloader instance
+      tags:
+        - settings
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Comic downloader instance deleted
   /settings/public:
     get:
       summary: Get public settings
@@ -7185,6 +7255,57 @@ paths:
           description: Paginated similar audiobooks
         '503':
           description: Hardcover API token not configured
+  /comic/config/status:
+    get:
+      summary: Get comic downloader configuration status
+      tags:
+        - comics
+      responses:
+        '200':
+          description: Configuration status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configured:
+                    type: boolean
+  /comic/search:
+    get:
+      summary: Search comics
+      tags:
+        - comics
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+        '503':
+          description: No comic downloader configured
+        '502':
+          description: Metadata search unavailable
+  /comic/{comicId}:
+    get:
+      summary: Get comic details
+      tags:
+        - comics
+      parameters:
+        - in: path
+          name: comicId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Comic details
+        '503':
+          description: No comic downloader configured
+        '502':
+          description: Metadata search unavailable
   /movie/{movieId}:
     get:
       summary: Get movie details
@@ -7716,7 +7837,7 @@ paths:
   /media/{mediaId}/file:
     delete:
       summary: Delete media file
-      description: Removes a media file from radarr/sonarr. The `ADMIN` permission is required to perform this action.
+      description: Removes a media file from Radarr, Sonarr, or a configured book downloader (Bookshelf/Bindery). Book and audiobook removal deletes the library entry only; files on disk are kept. The `MANAGE_REQUESTS` permission is required to perform this action.
       tags:
         - media
       parameters:

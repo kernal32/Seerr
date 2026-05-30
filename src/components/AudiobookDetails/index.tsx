@@ -9,6 +9,7 @@ const messages = defineMessages('components.AudiobookDetails', {
   overview: 'Overview',
   moreByAuthor: 'More by {author}',
   similarBooks: 'Similar Audiobooks',
+  manage: 'Manage Audiobook',
 });
 
 interface AudiobookDetailsProps {

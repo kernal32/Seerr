@@ -300,6 +300,16 @@ export class ReadarrAdapter implements DownloaderAdapter {
       );
     }
   }
+
+  public async removeFromLibrary({
+    externalServiceId,
+    deleteFiles = false,
+  }: {
+    externalServiceId: number;
+    deleteFiles?: boolean;
+  }): Promise<void> {
+    await this.client.deleteBook(externalServiceId, deleteFiles);
+  }
 }
 
 export default ReadarrAdapter;

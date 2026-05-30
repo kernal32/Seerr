@@ -1,7 +1,10 @@
 import {
   getBookDownloaderAdapter,
   getBookDownloaderById,
+  getComicDownloaderAdapter,
+  getComicDownloaderById,
   getDefaultBookDownloader,
+  getDefaultComicDownloader,
 } from '@server/api/downloaders/factory';
 import TheMovieDb from '@server/api/themoviedb';
 import { ANIME_KEYWORD_ID } from '@server/api/themoviedb/constants';
@@ -135,6 +138,15 @@ export class MediaRequest {
 
       if (requestBody.mediaType === MediaType.AUDIOBOOK) {
         return MediaRequest.requestAudiobook(
+          requestBody,
+          user,
+          requestUser,
+          options
+        );
+      }
+
+      if (requestBody.mediaType === MediaType.COMIC) {
+        return MediaRequest.requestComic(
           requestBody,
           user,
           requestUser,
@@ -589,6 +601,106 @@ export class MediaRequest {
       'audiobook',
       MediaType.AUDIOBOOK
     );
+  }
+
+  private static async requestComic(
+    requestBody: MediaRequestBody,
+    user: User,
+    requestUser: User,
+    options: MediaRequestOptions = {}
+  ): Promise<MediaRequest> {
+    const mediaRepository = getRepository(Media);
+    const requestRepository = getRepository(MediaRequest);
+
+    if (!requestBody.metadataId) {
+      throw new RequestPermissionError(
+        'Comic metadataId is required.'
+      );
+    }
+
+    const defaultDownloader = getDefaultComicDownloader();
+
+    if (!defaultDownloader) {
+      throw new ReadingMediaNotSupportedError(
+        'No default comic downloader configured.'
+      );
+    }
+
+    const downloaderSettings =
+      requestBody.serverId !== undefined && requestBody.serverId >= 0
+        ? (getComicDownloaderById(requestBody.serverId) ?? defaultDownloader)
+        : defaultDownloader;
+
+    const adapter = getComicDownloaderAdapter(downloaderSettings);
+    const details = await adapter.getDetails(requestBody.metadataId);
+    const publisherId =
+      requestBody.foreignAuthorId ?? details.foreignAuthorId;
+
+    let media = await mediaRepository.findOne({
+      where: {
+        metadataId: requestBody.metadataId,
+        mediaType: MediaType.COMIC,
+      },
+      relations: ['requests'],
+    });
+
+    if (!media) {
+      media = new Media({
+        metadataId: requestBody.metadataId,
+        imdbId: publisherId,
+        tmdbId: metadataIdToTmdbPlaceholder(requestBody.metadataId),
+        status: MediaStatus.PENDING,
+        status4k: MediaStatus.UNKNOWN,
+        mediaType: MediaType.COMIC,
+      });
+    } else if (media.status === MediaStatus.BLOCKLISTED) {
+      throw new BlocklistedMediaError('This media is blocklisted.');
+    } else if (!media.imdbId && publisherId) {
+      media.imdbId = publisherId;
+    }
+
+    if (media.requests) {
+      const existing = media.requests.filter(
+        (request) =>
+          !request.is4k &&
+          request.status !== MediaRequestStatus.DECLINED &&
+          request.status !== MediaRequestStatus.COMPLETED
+      );
+
+      if (existing.length) {
+        throw new DuplicateMediaRequestError(
+          'Request for this media already exists.'
+        );
+      }
+    }
+
+    await mediaRepository.save(media);
+
+    const autoApprovePermissions = [
+      Permission.AUTO_APPROVE,
+      Permission.MANAGE_REQUESTS,
+    ];
+
+    const request = new MediaRequest({
+      type: MediaType.COMIC,
+      media,
+      requestedBy: requestUser,
+      status: user.hasPermission(autoApprovePermissions, { type: 'or' })
+        ? MediaRequestStatus.APPROVED
+        : MediaRequestStatus.PENDING,
+      modifiedBy: user.hasPermission(autoApprovePermissions, { type: 'or' })
+        ? user
+        : undefined,
+      is4k: false,
+      serverId: downloaderSettings.id,
+      profileId: requestBody.profileId ?? downloaderSettings.activeProfileId,
+      rootFolder: requestBody.rootFolder ?? downloaderSettings.activeDirectory,
+      isAutoRequest: options.isAutoRequest ?? false,
+    });
+
+    await requestRepository.save(request);
+
+    return request;
   }
 
   private static async requestReadingMedia(

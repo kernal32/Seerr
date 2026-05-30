@@ -95,6 +95,13 @@ class ReadarrClient extends ExternalAPI {
   public getMetadataProfiles(): Promise<ReadarrProfile[]> {
     return this.get<ReadarrProfile[]>('/metadataprofile');
   }
+
+  // Readarr API: DELETE /api/v1/book/{id}
+  public async deleteBook(id: number, deleteFiles = false): Promise<void> {
+    await this.axios.delete(`/book/${id}`, {
+      params: { deleteFiles },
+    });
+  }
 }
 
 export default ReadarrClient;

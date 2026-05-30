@@ -7,6 +7,7 @@ import LoadingSpinner from '@app/components/Common/LoadingSpinner';
 import Modal from '@app/components/Common/Modal';
 import PageTitle from '@app/components/Common/PageTitle';
 import BookDownloaderModal from '@app/components/Settings/BookDownloaderModal';
+import ComicDownloaderModal from '@app/components/Settings/ComicDownloaderModal';
 import OverrideRuleModal from '@app/components/Settings/OverrideRule/OverrideRuleModal';
 import OverrideRuleTiles from '@app/components/Settings/OverrideRule/OverrideRuleTiles';
 import RadarrModal from '@app/components/Settings/RadarrModal';
@@ -19,6 +20,7 @@ import type OverrideRule from '@server/entity/OverrideRule';
 import type { OverrideRuleResultsResponse } from '@server/interfaces/api/overrideRuleInterfaces';
 import type {
   BookDownloaderSettings,
+  ComicDownloaderSettings,
   RadarrSettings,
   SonarrSettings,
 } from '@server/lib/settings';
@@ -44,6 +46,10 @@ const messages = defineMessages('components.Settings', {
   addsonarr: 'Add Sonarr Server',
   bookdownloadersettings: 'Book Downloaders',
   addbookdownloader: 'Add Book Downloader',
+  comicdownloadersettings: 'Comic Downloaders',
+  addcomicdownloader: 'Add Comic Downloader',
+  noDefaultComicServer:
+    'At least one default comic downloader must be configured for comic requests to work.',
   noDefaultBookServer:
     'At least one default book downloader must be configured for book requests to work.',
   noDefaultServer:
@@ -229,6 +235,11 @@ const SettingsServices = () => {
     error: bookDownloaderError,
     mutate: revalidateBookDownloaders,
   } = useSWR<BookDownloaderSettings[]>('/api/v1/settings/bookDownloader');
+  const {
+    data: comicDownloaderData,
+    error: comicDownloaderError,
+    mutate: revalidateComicDownloaders,
+  } = useSWR<ComicDownloaderSettings[]>('/api/v1/settings/comicDownloader');
   const { data: rules, mutate: revalidate } =
     useSWR<OverrideRuleResultsResponse>('/api/v1/overrideRule');
   const [editRadarrModal, setEditRadarrModal] = useState<{
@@ -252,9 +263,16 @@ const SettingsServices = () => {
     open: false,
     downloader: null,
   });
+  const [editComicDownloaderModal, setEditComicDownloaderModal] = useState<{
+    open: boolean;
+    downloader: ComicDownloaderSettings | null;
+  }>({
+    open: false,
+    downloader: null,
+  });
   const [deleteServerModal, setDeleteServerModal] = useState<{
     open: boolean;
-    type: 'radarr' | 'sonarr' | 'bookDownloader';
+    type: 'radarr' | 'sonarr' | 'bookDownloader' | 'comicDownloader';
     serverId: number | null;
   }>({
     open: false,
@@ -277,6 +295,7 @@ const SettingsServices = () => {
     revalidateRadarr();
     revalidateSonarr();
     revalidateBookDownloaders();
+    revalidateComicDownloaders();
     mutate('/api/v1/settings/public');
   };
 
@@ -322,6 +341,19 @@ const SettingsServices = () => {
             revalidateBookDownloaders();
             mutate('/api/v1/settings/public');
             setEditBookDownloaderModal({ open: false, downloader: null });
+          }}
+        />
+      )}
+      {editComicDownloaderModal.open && (
+        <ComicDownloaderModal
+          downloader={editComicDownloaderModal.downloader}
+          onClose={() =>
+            setEditComicDownloaderModal({ open: false, downloader: null })
+          }
+          onSave={() => {
+            revalidateComicDownloaders();
+            mutate('/api/v1/settings/public');
+            setEditComicDownloaderModal({ open: false, downloader: null });
           }}
         />
       )}
@@ -601,6 +633,80 @@ const SettingsServices = () => {
                     <PlusIcon />
                     <span>
                       {intl.formatMessage(messages.addbookdownloader)}
+                    </span>
+                  </Button>
+                </div>
+              </li>
+            </ul>
+          </>
+        )}
+      </div>
+      <div className="mb-6 mt-10">
+        <h3 className="heading">
+          {intl.formatMessage(messages.comicdownloadersettings)}
+        </h3>
+        <p className="description">
+          {intl.formatMessage(messages.serviceSettingsDescription, {
+            serverType: 'Mylar3',
+          })}
+        </p>
+      </div>
+      <div className="section">
+        {!comicDownloaderData && !comicDownloaderError && <LoadingSpinner />}
+        {(comicDownloaderData || comicDownloaderError) && (
+          <>
+            {comicDownloaderError && (
+              <Alert title="Unable to load comic downloader settings. Restart the dev server if you recently updated Bookarr." />
+            )}
+            {comicDownloaderData &&
+              comicDownloaderData.length > 0 &&
+              !comicDownloaderData.some(
+                (downloader) => downloader.isDefault
+              ) && (
+                <Alert
+                  title={intl.formatMessage(messages.noDefaultComicServer)}
+                />
+              )}
+            <ul className="grid max-w-6xl grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+              {(comicDownloaderData ?? []).map((downloader) => (
+                <ServerInstance
+                  key={`comic-downloader-${downloader.id}`}
+                  name={downloader.name}
+                  hostname={downloader.hostname}
+                  port={downloader.port}
+                  profileName="Mylar3"
+                  isSSL={downloader.useSsl}
+                  isDefault={downloader.isDefault}
+                  externalUrl={downloader.externalUrl}
+                  onEdit={() =>
+                    setEditComicDownloaderModal({
+                      open: true,
+                      downloader,
+                    })
+                  }
+                  onDelete={() =>
+                    setDeleteServerModal({
+                      open: true,
+                      type: 'comicDownloader',
+                      serverId: downloader.id,
+                    })
+                  }
+                />
+              ))}
+              <li className="min-h-[8rem] rounded-lg border-2 border-dashed border-gray-400 shadow sm:min-h-[11rem]">
+                <div className="flex h-full w-full items-center justify-center">
+                  <Button
+                    buttonType="ghost"
+                    onClick={() =>
+                      setEditComicDownloaderModal({
+                        open: true,
+                        downloader: null,
+                      })
+                    }
+                  >
+                    <PlusIcon />
+                    <span>
+                      {intl.formatMessage(messages.addcomicdownloader)}
                     </span>
                   </Button>
                 </div>

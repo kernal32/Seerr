@@ -24,18 +24,22 @@ export const mapReadingRouteError = (
 ): { status: number; message: string } | null => {
   if (
     error instanceof Error &&
-    error.message.includes('No default book downloader')
+    (error.message.includes('No default book downloader') ||
+      error.message.includes('No default comic downloader'))
   ) {
     return { status: 503, message: context.notConfiguredMessage };
   }
 
   if (
     error instanceof Error &&
-    error.message.includes('Hardcover API token is not configured')
+    (error.message.includes('Hardcover API token is not configured') ||
+      error.message.includes('Comic Vine API key is not configured'))
   ) {
     return {
       status: 503,
-      message: 'Hardcover API token is not configured on the book downloader.',
+      message: error.message.includes('Comic Vine')
+        ? error.message
+        : 'Hardcover API token is not configured on the book downloader.',
     };
   }
 

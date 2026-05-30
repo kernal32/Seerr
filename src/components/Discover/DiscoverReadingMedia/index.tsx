@@ -19,7 +19,7 @@ export interface DiscoverReadingMediaProps {
   detailPathPrefix: string;
   discoverPath: string;
   discoverListBasePath: string;
-  mediaType: typeof MediaType.BOOK | typeof MediaType.AUDIOBOOK;
+  mediaType: typeof MediaType.BOOK | typeof MediaType.AUDIOBOOK | typeof MediaType.COMIC;
   enabled: boolean;
   mediaTypeLabel: string;
   messages: {
@@ -178,7 +178,7 @@ const DiscoverReadingMedia = ({
           ))}
         </ul>
       )}
-      {!query && (
+      {!query && mediaType !== MediaType.COMIC && (
         <ReadingDiscoverSliders
           discoverListBasePath={discoverListBasePath}
           discoverPath={discoverPath}

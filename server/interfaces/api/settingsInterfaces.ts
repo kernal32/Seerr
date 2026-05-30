@@ -37,6 +37,7 @@ export interface PublicSettingsResponse {
   series4kEnabled: boolean;
   booksEnabled: boolean;
   audiobooksEnabled: boolean;
+  comicsEnabled: boolean;
   discoverRegion: string;
   streamingRegion: string;
   originalLanguage: string;

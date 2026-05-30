@@ -1,5 +1,7 @@
+import { Mylar3Adapter } from '@server/api/downloaders/mylar3/adapter';
 import type { ComicDownloaderSettings } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
+import logger from '@server/logger';
 import { Router } from 'express';
 
 const comicDownloaderRoutes = Router();
@@ -15,8 +17,11 @@ comicDownloaderRoutes.post('/', async (req, res) => {
     settings.comicDownloaders[settings.comicDownloaders.length - 1];
   newDownloader.id = lastItem ? lastItem.id + 1 : 0;
   newDownloader.is4k = false;
+  newDownloader.provider = newDownloader.provider ?? 'mylar3';
 
-  if (req.body.isDefault) {
+  if (settings.comicDownloaders.length === 0) {
+    newDownloader.isDefault = true;
+  } else if (req.body.isDefault) {
     settings.comicDownloaders
       .filter((instance) => instance.isDefault)
       .forEach((instance) => {
@@ -30,12 +35,33 @@ comicDownloaderRoutes.post('/', async (req, res) => {
   return res.status(201).json(newDownloader);
 });
 
-comicDownloaderRoutes.post('/test', async (_req, res, next) => {
-  next({
-    status: 501,
-    message:
-      'Comic downloader test is not available until Kapowarr adapter ships.',
-  });
+comicDownloaderRoutes.post<
+  undefined,
+  Record<string, unknown>,
+  ComicDownloaderSettings
+>('/test', async (req, res, next) => {
+  try {
+    const adapter = new Mylar3Adapter({
+      ...req.body,
+      provider: req.body.provider ?? 'mylar3',
+    });
+
+    await adapter.testConnection();
+
+    return res.status(200).json({
+      urlBase: req.body.baseUrl ?? '',
+      comicVineConfigured: Boolean(req.body.comicVineApiKey?.trim()),
+    });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'Unknown error';
+
+    logger.error('Failed to test comic downloader', {
+      label: 'Comic Downloader',
+      message,
+    });
+
+    next({ status: 500, message: 'Failed to connect to comic downloader' });
+  }
 });
 
 comicDownloaderRoutes.put<
@@ -64,6 +90,7 @@ comicDownloaderRoutes.put<
     ...req.body,
     id: Number(req.params.id),
     is4k: false,
+    provider: req.body.provider ?? 'mylar3',
   } as ComicDownloaderSettings;
 
   await settings.save();

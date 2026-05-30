@@ -1,15 +1,19 @@
 import Button from '@app/components/Common/Button';
 import Header from '@app/components/Common/Header';
 import PageTitle from '@app/components/Common/PageTitle';
-import StatusBadgeMini from '@app/components/Common/StatusBadgeMini';
+import Tooltip from '@app/components/Common/Tooltip';
+import ManageReadingSlideOver from '@app/components/ManageReadingSlideOver';
 import ReadingMediaSlider from '@app/components/Discover/ReadingMediaSlider';
+import StatusBadge from '@app/components/StatusBadge';
 import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
 import { Permission, useUser } from '@app/hooks/useUser';
+import { CogIcon } from '@heroicons/react/24/outline';
 import { MediaStatus, MediaType } from '@server/constants/media';
 import type { ReadingMediaDetailsResult } from '@server/models/ReadingMedia';
 import axios from 'axios';
 import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
 import type { MessageDescriptor } from 'react-intl';
 import { useIntl } from 'react-intl';
 import useSWR from 'swr';
@@ -18,7 +22,7 @@ export interface ReadingDetailsProps {
   apiBasePath: string;
   enabled: boolean;
   mediaId: string;
-  mediaType: MediaType.BOOK | MediaType.AUDIOBOOK;
+  mediaType: MediaType.BOOK | MediaType.AUDIOBOOK | MediaType.COMIC;
   messages: {
     request: MessageDescriptor;
     requestSuccess: MessageDescriptor;
@@ -26,6 +30,7 @@ export interface ReadingDetailsProps {
     overview: MessageDescriptor;
     moreByAuthor: MessageDescriptor;
     similarBooks: MessageDescriptor;
+    manage: MessageDescriptor;
   };
 }
 
@@ -41,10 +46,25 @@ const ReadingDetails = ({
   const { addToast } = useToasts();
   const { hasPermission } = useUser();
   const { currentSettings } = useSettings();
+  const [showManager, setShowManager] = useState(
+    router.query.manage == '1' ? true : false
+  );
 
   const { data, error, mutate } = useSWR<ReadingMediaDetailsResult>(
-    mediaId ? `${apiBasePath}/${encodeURIComponent(mediaId)}` : null
+    mediaId ? `${apiBasePath}/${encodeURIComponent(mediaId)}` : null,
+    {
+      refreshInterval(latestData) {
+        if (latestData?.mediaInfo?.status === MediaStatus.PROCESSING) {
+          return 15000;
+        }
+        return 0;
+      },
+    }
   );
+
+  useEffect(() => {
+    setShowManager(router.query.manage == '1' ? true : false);
+  }, [router.query.manage]);
 
   const submitRequest = async () => {
     if (!data) {
@@ -55,7 +75,10 @@ const ReadingDetails = ({
       const foreignAuthorId =
         (router.query.authorId as string) ?? data.foreignAuthorId;
 
-      if (!foreignAuthorId) {
+      if (
+        mediaType !== MediaType.COMIC &&
+        !foreignAuthorId
+      ) {
         addToast(
           intl.formatMessage(messages.requestError) +
             ' (missing author metadata)',
@@ -98,12 +121,11 @@ const ReadingDetails = ({
   const isEnabled =
     mediaType === MediaType.BOOK
       ? currentSettings.booksEnabled
-      : currentSettings.audiobooksEnabled;
+      : mediaType === MediaType.AUDIOBOOK
+        ? currentSettings.audiobooksEnabled
+        : currentSettings.comicsEnabled;
 
   const mediaStatus = data.mediaInfo?.status;
-  const showStatusBadge =
-    mediaStatus === MediaStatus.PROCESSING ||
-    mediaStatus === MediaStatus.AVAILABLE;
 
   const canRequest =
     enabled &&
@@ -120,6 +142,24 @@ const ReadingDetails = ({
   return (
     <>
       <PageTitle title={data.title} />
+      <ManageReadingSlideOver
+        data={data}
+        mediaType={mediaType}
+        onClose={() => {
+          setShowManager(false);
+          router.push({
+            pathname: router.pathname,
+            query:
+              mediaType === MediaType.BOOK
+                ? { bookId: mediaId }
+                : mediaType === MediaType.AUDIOBOOK
+                  ? { audiobookId: mediaId }
+                  : { comicId: mediaId },
+          });
+        }}
+        revalidate={() => mutate()}
+        show={showManager}
+      />
       <div className="media-header">
         <div className="media-poster">
           {data.coverUrl ? (
@@ -131,8 +171,14 @@ const ReadingDetails = ({
         <div className="media-title">
           <div className="flex items-center gap-2">
             <Header>{data.title}</Header>
-            {showStatusBadge && mediaStatus && (
-              <StatusBadgeMini status={mediaStatus} />
+            {data.mediaInfo && mediaStatus && mediaStatus !== MediaStatus.UNKNOWN && (
+              <StatusBadge
+                status={mediaStatus}
+                serviceUrl={data.mediaInfo.serviceUrl}
+                mediaType={mediaType}
+                routeId={mediaId}
+                title={data.title}
+              />
             )}
           </div>
           {data.subtitle && (
@@ -141,13 +187,26 @@ const ReadingDetails = ({
             </span>
           )}
         </div>
-        {canRequest && (
-          <div className="media-actions">
+        <div className="media-actions">
+          {canRequest && (
             <Button buttonType="primary" buttonSize="md" onClick={submitRequest}>
               {intl.formatMessage(messages.request)}
             </Button>
-          </div>
-        )}
+          )}
+          {hasPermission(Permission.MANAGE_REQUESTS) &&
+            data.mediaInfo &&
+            data.mediaInfo.status !== MediaStatus.UNKNOWN && (
+              <Tooltip content={intl.formatMessage(messages.manage)}>
+                <Button
+                  buttonType="ghost"
+                  onClick={() => setShowManager(true)}
+                  className="relative ml-2 first:ml-0"
+                >
+                  <CogIcon className="!mr-0" />
+                </Button>
+              </Tooltip>
+            )}
+        </div>
       </div>
       {data.overview && (
         <div className="media-overview mt-8">
@@ -155,7 +214,7 @@ const ReadingDetails = ({
           <p>{data.overview}</p>
         </div>
       )}
-      {authorBooksUrl && (
+      {mediaType !== MediaType.COMIC && authorBooksUrl && (
         <ReadingMediaSlider
           mediaType={mediaType}
           sliderKey={`${mediaId}-author-books`}
@@ -165,12 +224,14 @@ const ReadingDetails = ({
           url={authorBooksUrl}
         />
       )}
-      <ReadingMediaSlider
-        mediaType={mediaType}
-        sliderKey={`${mediaId}-similar`}
-        title={intl.formatMessage(messages.similarBooks)}
-        url={`${apiBasePath}/${encodeURIComponent(mediaId)}/similar`}
-      />
+      {mediaType !== MediaType.COMIC && (
+        <ReadingMediaSlider
+          mediaType={mediaType}
+          sliderKey={`${mediaId}-similar`}
+          title={intl.formatMessage(messages.similarBooks)}
+          url={`${apiBasePath}/${encodeURIComponent(mediaId)}/similar`}
+        />
+      )}
       <div className="extra-bottom-space relative" />
     </>
   );

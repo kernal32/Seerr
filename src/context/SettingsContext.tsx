@@ -20,6 +20,7 @@ const defaultSettings: PublicSettingsResponse = {
   series4kEnabled: false,
   booksEnabled: false,
   audiobooksEnabled: false,
+  comicsEnabled: false,
   discoverRegion: '',
   streamingRegion: '',
   originalLanguage: '',

@@ -68,7 +68,8 @@ export class MediaSubscriber implements EntitySubscriberInterface<Media> {
           shouldComplete = true;
         } else if (
           event.mediaType === MediaType.BOOK ||
-          event.mediaType === MediaType.AUDIOBOOK
+          event.mediaType === MediaType.AUDIOBOOK ||
+          event.mediaType === MediaType.COMIC
         ) {
           shouldComplete =
             event.status === MediaStatus.AVAILABLE ||

@@ -2,6 +2,29 @@
 
 Newest entries at the top.
 
+## 2026-05-30 — Phase 4: Comics (Mylar3 + Comic Vine)
+
+- Files: `server/api/metadata/comicvine/*`, `server/api/downloaders/mylar3/*`, `server/api/downloaders/factory.ts`, `server/routes/comic.ts`, `server/routes/reading/createComicMediaRoutes.ts`, `server/routes/settings/comicDownloader.ts`, `server/subscriber/MediaRequestSubscriber.ts`, `server/entity/MediaRequest.ts`, `server/entity/Media.ts`, `server/subscriber/MediaSubscriber.ts`, `server/lib/scanners/mylar3/*`, `server/job/schedule.ts`, `server/routes/media.ts`, `src/components/Discover/DiscoverComics/*`, `src/components/ComicDetails/*`, `src/components/Settings/ComicDownloaderModal/*`, `src/components/Settings/SettingsServices.tsx`, `src/components/ReadingDetails/index.tsx`, `src/components/ManageReadingSlideOver/index.tsx`, `seerr-api.yml`, `tasks/todo.md`
+- DoD: `pnpm typecheck` pass; targeted tests pass (12/12 comic-related); lint pre-existing failures only (not in touched files)
+- Notes: Comic Vine search/detail; Mylar3 addComic/delComic/getComic dispatch + mylar3-scan job; Settings → Comic Downloaders; discover/detail/request UI; ManageReadingSlideOver for comics; `comicsEnabled` public setting. User infra: shared `/comics` mount Mylar3↔Kavita, Mylar metadata tagging per Kavita wiki.
+
+## 2026-05-30 — reading manage slide-over (books + audiobooks)
+
+- Files: `src/components/ManageReadingSlideOver/index.tsx`, `src/components/ReadingDetails/index.tsx`, `src/components/StatusBadge/index.tsx`, `server/entity/Media.ts`, `server/routes/media.ts`, `server/api/downloaders/readarr/{client,adapter}.ts`, `server/api/downloaders/{types,factory}.ts`, `server/routes/reading/createReadingMediaRoutes.ts`, `seerr-api.yml`, tests
+- DoD: `pnpm typecheck` pass; targeted tests pass (Media.serviceUrl, ReadarrAdapter.removeFromLibrary); full suite 120/122 (2 pre-existing auth flakes)
+- Notes: Manage cog + slide-over with RequestBlock, Open/Remove Bookshelf (library only), Mark Available, Clear Data; `serviceUrl` for book/audiobook; detail page polls every 15s while PROCESSING
+
+## 2026-05-30 — fix: production DB crash loop (test file loaded as subscriber)
+
+- Files: `server/test/subscriber/MediaSubscriber.test.ts`, `server/datasource.ts`, `server/tsconfig.json`, `Dockerfile`, `compose.prod.yaml`, `scripts/restore-overseerr-db.sh`
+- DoD: `pnpm typecheck` pass, `pnpm test` pass (117 tests), `dist/subscriber/` has 4 files only (no `*.test.js`)
+- Commit: `c74936b3` fix(server): prevent test files from wiping production SQLite on boot
+- Notes: Root cause — `MediaSubscriber.test.js` in subscriber glob auto-ran `seedTestDb()` on require. **VM steps** (run on vm-docker-01 before start):
+  1. `bash scripts/restore-overseerr-db.sh` (or manual steps in script)
+  2. `docker compose -f compose.prod.yaml build --no-cache && docker compose -f compose.prod.yaml up -d`
+  3. Confirm logs: no `TAP version 13`, no migration errors
+  4. Hard refresh browser; verify users/requests; enable book sync; retry failed audiobook
+
 ## 2026-05-30 — phase6: idempotent Bookshelf duplicate-edition recovery
 
 - Files: `server/api/downloaders/readarr/{adapter,adapter.test,client,formatClientError,formatClientError.test}.ts`

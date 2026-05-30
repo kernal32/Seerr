@@ -114,7 +114,10 @@ export interface BookDownloaderSettings extends DVRSettings {
   activeMetadataProfileName?: string;
 }
 
+export type ComicDownloaderProvider = 'mylar3';
+
 export interface ComicDownloaderSettings extends DVRSettings {
+  provider: ComicDownloaderProvider;
   comicVineApiKey?: string;
 }
 
@@ -241,6 +244,7 @@ interface FullPublicSettings extends PublicSettings {
   series4kEnabled: boolean;
   booksEnabled: boolean;
   audiobooksEnabled: boolean;
+  comicsEnabled: boolean;
   discoverRegion: string;
   streamingRegion: string;
   originalLanguage: string;
@@ -413,6 +417,7 @@ export type JobId =
   | 'plex-refresh-token'
   | 'radarr-scan'
   | 'readarr-scan'
+  | 'mylar3-scan'
   | 'sonarr-scan'
   | 'download-sync'
   | 'download-sync-reset'
@@ -652,6 +657,9 @@ class Settings {
         'readarr-scan': {
           schedule: '0 */10 * * * *',
         },
+        'mylar3-scan': {
+          schedule: '0 */10 * * * *',
+        },
         'sonarr-scan': {
           schedule: '0 30 4 * * *',
         },
@@ -819,6 +827,9 @@ class Settings {
       audiobooksEnabled: this.data.bookDownloaders.some(
         (downloader) =>
           !downloader.is4k && downloader.mediaSubtype === 'audiobook'
+      ),
+      comicsEnabled: this.data.comicDownloaders.some(
+        (downloader) => !downloader.is4k && downloader.isDefault
       ),
       discoverRegion: this.data.main.discoverRegion,
       streamingRegion: this.data.main.streamingRegion,

@@ -11,6 +11,7 @@ import {
 import { plexFullScanner, plexRecentScanner } from '@server/lib/scanners/plex';
 import { radarrScanner } from '@server/lib/scanners/radarr';
 import { readarrScanner } from '@server/lib/scanners/readarr';
+import { mylar3Scanner } from '@server/lib/scanners/mylar3';
 import { sonarrScanner } from '@server/lib/scanners/sonarr';
 import type { JobId } from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
@@ -176,6 +177,21 @@ export const startJobs = (): void => {
     }),
     running: () => readarrScanner.status().running,
     cancelFn: () => readarrScanner.cancel(),
+  });
+
+  // Poll Mylar3 for processing comic requests
+  scheduledJobs.push({
+    id: 'mylar3-scan',
+    name: 'Mylar3 Scan',
+    type: 'process',
+    interval: 'minutes',
+    cronSchedule: jobs['mylar3-scan'].schedule,
+    job: schedule.scheduleJob(jobs['mylar3-scan'].schedule, () => {
+      logger.info('Starting scheduled job: Mylar3 Scan', { label: 'Jobs' });
+      mylar3Scanner.run();
+    }),
+    running: () => mylar3Scanner.status().running,
+    cancelFn: () => mylar3Scanner.cancel(),
   });
 
   // Run full sonarr scan every 24 hours

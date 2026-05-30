@@ -247,6 +247,7 @@ CoreApp.getInitialProps = async (initialProps) => {
     series4kEnabled: false,
     booksEnabled: false,
     audiobooksEnabled: false,
+    comicsEnabled: false,
     readingDiscover: {
       nytEnabled: false,
       lists: [],

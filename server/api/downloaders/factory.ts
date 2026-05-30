@@ -1,7 +1,11 @@
 import { MediaType } from '@server/constants/media';
-import type { BookDownloaderSettings } from '@server/lib/settings';
+import type {
+  BookDownloaderSettings,
+  ComicDownloaderSettings,
+} from '@server/lib/settings';
 import { getSettings } from '@server/lib/settings';
 import { BinderyAdapter } from './bindery/adapter';
+import { Mylar3Adapter } from './mylar3/adapter';
 import { ReadarrAdapter } from './readarr/adapter';
 import type { DownloaderAdapter } from './types';
 
@@ -43,6 +47,17 @@ export const getBookDownloaderAdapter = (
   }
 };
 
+export const getBookDownloaderDisplayName = (provider: string): string => {
+  switch (provider) {
+    case 'readarr':
+      return 'Bookshelf';
+    case 'bindery':
+      return 'Bindery';
+    default:
+      return provider;
+  }
+};
+
 export const getDefaultBookAdapter = (
   mediaSubtype: BookDownloaderSettings['mediaSubtype'] = 'book'
 ): { adapter: DownloaderAdapter; settings: BookDownloaderSettings } => {
@@ -62,3 +77,61 @@ export const readingMediaTypeForSubtype = (
   mediaSubtype: BookDownloaderSettings['mediaSubtype']
 ): MediaType =>
   mediaSubtype === 'audiobook' ? MediaType.AUDIOBOOK : MediaType.BOOK;
+
+export const getDefaultComicDownloader = ():
+  | ComicDownloaderSettings
+  | undefined => {
+  const settings = getSettings();
+
+  return (
+    settings.comicDownloaders.find(
+      (downloader) => downloader.isDefault && !downloader.is4k
+    ) ?? settings.comicDownloaders.find((downloader) => !downloader.is4k)
+  );
+};
+
+export const getComicDownloaderById = (
+  id: number
+): ComicDownloaderSettings | undefined => {
+  const settings = getSettings();
+
+  return settings.comicDownloaders.find((downloader) => downloader.id === id);
+};
+
+export const getComicDownloaderAdapter = (
+  downloaderSettings: ComicDownloaderSettings
+): DownloaderAdapter => {
+  switch (downloaderSettings.provider) {
+    case 'mylar3':
+      return new Mylar3Adapter(downloaderSettings);
+    default:
+      throw new Error(
+        `Unsupported comic downloader provider: ${downloaderSettings.provider}`
+      );
+  }
+};
+
+export const getComicDownloaderDisplayName = (provider: string): string => {
+  switch (provider) {
+    case 'mylar3':
+      return 'Mylar3';
+    default:
+      return provider;
+  }
+};
+
+export const getDefaultComicAdapter = (): {
+  adapter: DownloaderAdapter;
+  settings: ComicDownloaderSettings;
+} => {
+  const settings = getDefaultComicDownloader();
+
+  if (!settings) {
+    throw new Error('No default comic downloader configured');
+  }
+
+  return {
+    settings,
+    adapter: getComicDownloaderAdapter(settings),
+  };
+};

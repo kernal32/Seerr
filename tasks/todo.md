@@ -18,7 +18,8 @@
 - [x] Book downloader settings API + Services UI (`BookDownloaderModal`)
 - [x] Book search/detail API + DiscoverBooks + BookDetails UI
 - [x] `sendToBookDownloader` in MediaRequestSubscriber + `MediaRequest.requestBook()`
-- [ ] Comic/magazine settings UI stubs (CRUD only; Kapowarr/LazyLibrarian adapters Phase 4/5)
+- [x] Comic settings UI + Mylar3Adapter + comic discover/detail/request flow
+- [ ] Magazine settings UI stubs (CRUD only; LazyLibrarian adapter Phase 5)
 - [x] Request list UI filter for `book` and `audiobook` types
 - [ ] Full request modal parity (server/profile picker) — simplified direct POST for now
 
@@ -30,7 +31,7 @@
 
 ## Phase 4 — Comics
 
-- [ ] KapowarrAdapter + comic discover/detail/request flow
+- [x] Mylar3Adapter + Comic Vine metadata + comic discover/detail/request flow
 
 ## Phase 5 — Magazines
 

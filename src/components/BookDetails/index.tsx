@@ -9,6 +9,7 @@ const messages = defineMessages('components.BookDetails', {
   overview: 'Overview',
   moreByAuthor: 'More by {author}',
   similarBooks: 'Similar Books',
+  manage: 'Manage Book',
 });
 
 interface BookDetailsProps {

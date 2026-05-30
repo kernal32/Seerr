@@ -6,8 +6,7 @@ import useSettings from '@app/hooks/useSettings';
 import { Permission, useUser } from '@app/hooks/useUser';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
-import type { MediaType } from '@server/constants/media';
-import { MediaStatus } from '@server/constants/media';
+import { MediaStatus, MediaType } from '@server/constants/media';
 import { MediaServerType } from '@server/constants/server';
 import type { DownloadingItem } from '@server/lib/downloadtracker';
 import { useIntl } from 'react-intl';
@@ -30,6 +29,7 @@ interface StatusBadgeProps {
   plexUrl?: string;
   serviceUrl?: string;
   tmdbId?: number;
+  routeId?: string;
   mediaType?: MediaType;
   title?: string | string[];
   statusLabelOverride?: string;
@@ -43,6 +43,7 @@ const StatusBadge = ({
   plexUrl,
   serviceUrl,
   tmdbId,
+  routeId,
   mediaType,
   title,
   statusLabelOverride,
@@ -94,17 +95,35 @@ const StatusBadge = ({
             : 'Jellyfin',
     });
   } else if (hasPermission(Permission.MANAGE_REQUESTS)) {
-    if (mediaType && tmdbId) {
-      mediaLink = `/${mediaType}/${tmdbId}?manage=1`;
+    if (mediaType && (routeId != null || tmdbId != null)) {
+      const id = routeId ?? String(tmdbId);
+      mediaLink = `/${mediaType}/${encodeURIComponent(id)}?manage=1`;
       mediaLinkDescription = intl.formatMessage(messages.managemedia, {
-        mediaType: intl.formatMessage(
-          mediaType === 'movie' ? globalMessages.movie : globalMessages.tvshow
-        ),
+        mediaType:
+          mediaType === 'movie'
+            ? intl.formatMessage(globalMessages.movie)
+            : mediaType === 'tv'
+              ? intl.formatMessage(globalMessages.tvshow)
+              : mediaType === MediaType.AUDIOBOOK
+                ? 'audiobook'
+                : mediaType === MediaType.BOOK
+                  ? 'book'
+                  : String(mediaType),
       });
     } else if (hasPermission(Permission.ADMIN) && serviceUrl) {
       mediaLink = serviceUrl;
       mediaLinkDescription = intl.formatMessage(messages.openinarr, {
-        arr: mediaType === 'movie' ? 'Radarr' : 'Sonarr',
+        arr:
+          mediaType === 'movie'
+            ? 'Radarr'
+            : mediaType === 'tv'
+              ? 'Sonarr'
+              : mediaType === MediaType.BOOK ||
+                  mediaType === MediaType.AUDIOBOOK
+                ? 'Bookshelf'
+                : mediaType === MediaType.COMIC
+                  ? 'Mylar3'
+                  : 'Downloader',
       });
     }
   }

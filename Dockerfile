@@ -67,8 +67,7 @@ COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
 COPY --chown=node:node --from=build /app/.next ./.next
 COPY --chown=node:node --from=build /app/dist ./dist
 RUN find dist -name '*.test.js' -delete && \
-  ! test -f dist/subscriber/MediaSubscriber.test.js && \
-  test -z "$(find dist/subscriber -name '*.test.js' -print -quit)"
+  test "$(find dist/subscriber -name '*.test.js' 2>/dev/null | wc -l)" -eq 0
 
 RUN touch config/DOCKER && \
   echo "{\"commitTag\": \"${COMMIT_TAG}\"}" > committag.json

@@ -32,6 +32,7 @@ import audiobookRoutes from './audiobook';
 import authRoutes from './auth';
 import blocklistRoutes from './blocklist';
 import bookRoutes from './book';
+import comicRoutes from './comic';
 import collectionRoutes from './collection';
 import discoverRoutes, { createTmdbWithRegionLanguage } from './discover';
 import issueRoutes from './issue';
@@ -172,6 +173,7 @@ router.use(
 router.use('/movie', isAuthenticated(), movieRoutes);
 router.use('/book', isAuthenticated(), bookRoutes);
 router.use('/audiobook', isAuthenticated(), audiobookRoutes);
+router.use('/comic', isAuthenticated(), comicRoutes);
 router.use('/tv', isAuthenticated(), tvRoutes);
 router.use('/media', isAuthenticated(), mediaRoutes);
 router.use('/person', isAuthenticated(), personRoutes);

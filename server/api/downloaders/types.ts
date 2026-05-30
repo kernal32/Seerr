@@ -36,10 +36,16 @@ export interface AddResult {
   externalServiceSlug: string;
 }
 
+export interface RemoveFromLibraryPayload {
+  externalServiceId: number;
+  deleteFiles?: boolean;
+}
+
 export interface DownloaderAdapter {
   testConnection(): Promise<void>;
   search(term: string, options?: SearchOptions): Promise<SearchResult[]>;
   getDetails(id: string): Promise<MediaDetails>;
   addToLibrary(payload: AddPayload): Promise<AddResult>;
+  removeFromLibrary?(payload: RemoveFromLibraryPayload): Promise<void>;
   getAvailability?(externalServiceId: number): Promise<MediaStatus>;
 }

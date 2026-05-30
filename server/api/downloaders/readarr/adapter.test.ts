@@ -23,6 +23,8 @@ let addBookImpl: () => Promise<ReadarrAddBookResponse> = async () => ({
   title: 'Test Book',
 });
 let getLibraryBooksImpl: () => Promise<ReadarrBook[]> = async () => [];
+let deleteBookImpl: (id: number, deleteFiles?: boolean) => Promise<void> =
+  async () => undefined;
 
 Object.defineProperty(ReadarrClient.prototype, 'lookupBooks', {
   set() {},
@@ -44,6 +46,15 @@ Object.defineProperty(ReadarrClient.prototype, 'getLibraryBooks', {
   set() {},
   get() {
     return async () => getLibraryBooksImpl();
+  },
+  configurable: true,
+});
+
+Object.defineProperty(ReadarrClient.prototype, 'deleteBook', {
+  set() {},
+  get() {
+    return async (id: number, deleteFiles?: boolean) =>
+      deleteBookImpl(id, deleteFiles);
   },
   configurable: true,
 });
@@ -197,5 +208,26 @@ describe('ReadarrAdapter.addToLibrary duplicate edition recovery', () => {
         }),
       /HTTP 500/
     );
+  });
+});
+
+describe('ReadarrAdapter.removeFromLibrary', () => {
+  beforeEach(() => {
+    deleteBookImpl = async () => undefined;
+  });
+
+  it('calls deleteBook without deleting files by default', async () => {
+    let deletedId: number | undefined;
+    let deletedFiles: boolean | undefined;
+    deleteBookImpl = async (id, deleteFiles) => {
+      deletedId = id;
+      deletedFiles = deleteFiles;
+    };
+
+    const adapter = new ReadarrAdapter(baseSettings());
+    await adapter.removeFromLibrary({ externalServiceId: 55 });
+
+    assert.equal(deletedId, 55);
+    assert.equal(deletedFiles, false);
   });
 });
