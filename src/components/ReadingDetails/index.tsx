@@ -211,7 +211,7 @@ const ReadingDetails = ({
       {data.overview && (
         <div className="media-overview mt-8">
           <h2 className="heading">{intl.formatMessage(messages.overview)}</h2>
-          <p>{data.overview}</p>
+          <p className="whitespace-pre-line">{data.overview}</p>
         </div>
       )}
       {mediaType !== MediaType.COMIC && authorBooksUrl && (

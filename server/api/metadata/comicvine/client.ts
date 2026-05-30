@@ -13,6 +13,7 @@ import type {
   ComicVineSearchResponse,
   ComicVineVolume,
 } from './types';
+import { formatComicVineDescription } from './formatDescription';
 
 const pickCoverUrl = (image?: ComicVineImage): string | undefined =>
   image?.super_url ??
@@ -91,7 +92,9 @@ class ComicVineClient {
 
     return {
       ...mapped,
-      overview: volume.description ?? volume.deck ?? mapped.overview,
+      overview: formatComicVineDescription(
+        volume.description ?? volume.deck ?? mapped.overview ?? ''
+      ),
       author: volume.publisher?.name,
       publisher: volume.publisher?.name,
     };
