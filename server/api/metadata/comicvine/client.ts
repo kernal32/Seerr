@@ -5,7 +5,9 @@ import {
   COMICVINE_API_BASE,
   COMICVINE_VOLUME_FIELD_LIST,
 } from './constants';
+import { formatComicVineDescription } from './formatDescription';
 import {
+  comicVinePublisherApiId,
   comicVineVolumeApiId,
   normalizeComicVinePublisherId,
   normalizeComicVineVolumeId,
@@ -13,6 +15,7 @@ import {
 import type {
   ComicVineApiResponse,
   ComicVineImage,
+  ComicVinePublisherDetail,
   ComicVineSearchResponse,
   ComicVineVolume,
   ComicVineVolumesListResponse,
@@ -29,7 +32,6 @@ export interface ComicVineListVolumesResult {
   results: SearchResult[];
   totalResults: number;
 }
-import { formatComicVineDescription } from './formatDescription';
 
 const pickCoverUrl = (image?: ComicVineImage): string | undefined =>
   image?.super_url ??
@@ -56,6 +58,18 @@ const mapVolumeToSearchResult = (volume: {
     ? normalizeComicVinePublisherId(String(volume.publisher.id))
     : undefined,
 });
+
+const sortVolumesByName = (
+  volumes: SearchResult[],
+  direction: 'asc' | 'desc'
+): SearchResult[] =>
+  [...volumes].sort((left, right) => {
+    const comparison = left.title.localeCompare(right.title, undefined, {
+      sensitivity: 'base',
+    });
+
+    return direction === 'asc' ? comparison : -comparison;
+  });
 
 class ComicVineClient {
   private readonly apiKey: string;
@@ -90,6 +104,50 @@ class ComicVineClient {
     return {
       results: (response.data.results ?? []).map(mapVolumeToSearchResult),
       totalResults: response.data.number_of_total_results ?? 0,
+    };
+  }
+
+  /**
+   * Comic Vine ignores publisher ID filters on /volumes/. Fetch volumes from
+   * the publisher resource instead (see comic-rust and CV forum patterns).
+   */
+  public async listPublisherVolumes(
+    publisherId: number,
+    options?: { sort?: string }
+  ): Promise<ComicVineListVolumesResult> {
+    const response = await axios.get<
+      ComicVineApiResponse<ComicVinePublisherDetail>
+    >(`${COMICVINE_API_BASE}/publisher/${comicVinePublisherApiId(publisherId)}/`, {
+      params: {
+        api_key: this.apiKey,
+        format: 'json',
+        field_list: 'id,name,volumes',
+      },
+      timeout: 60000,
+    });
+
+    if (response.data.status_code !== 1 || !response.data.results) {
+      throw new Error(response.data.error || 'Comic Vine publisher not found');
+    }
+
+    const publisher = response.data.results;
+    const publisherMeta = { id: publisher.id, name: publisher.name };
+    const mapped = (publisher.volumes ?? []).map((volume) =>
+      mapVolumeToSearchResult({
+        ...volume,
+        publisher: volume.publisher ?? publisherMeta,
+      })
+    );
+
+    const [, direction = 'asc'] = (options?.sort ?? 'name:asc').split(':');
+    const sorted = sortVolumesByName(
+      mapped,
+      direction === 'desc' ? 'desc' : 'asc'
+    );
+
+    return {
+      results: sorted,
+      totalResults: sorted.length,
     };
   }
 

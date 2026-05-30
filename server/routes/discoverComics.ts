@@ -1,5 +1,5 @@
 import ComicVineClient from '@server/api/metadata/comicvine/client';
-import type { ComicVineListVolumesOptions } from '@server/api/metadata/comicvine/client';
+import type { SearchResult } from '@server/api/downloaders/types';
 import { getComicVineApiKey } from '@server/api/metadata/comicvine/getComicVineApiKey';
 import { MediaType } from '@server/constants/media';
 import Media from '@server/entity/Media';
@@ -37,12 +37,59 @@ const cache = new Map<
   }
 >();
 
+const publisherVolumeCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    results: SearchResult[];
+  }
+>();
+
+const paginateResults = (results: SearchResult[], page: number) => {
+  const totalResults = results.length;
+  const totalPages = Math.max(1, Math.ceil(totalResults / PER_PAGE));
+  const start = (page - 1) * PER_PAGE;
+
+  return {
+    page,
+    totalPages,
+    totalResults,
+    results: results.slice(start, start + PER_PAGE),
+  };
+};
+
+const getPublisherVolumeResults = async (
+  client: ComicVineClient,
+  publisherId: number
+): Promise<SearchResult[]> => {
+  const cacheKey = String(publisherId);
+  const cached = publisherVolumeCache.get(cacheKey);
+
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.results;
+  }
+
+  const listed = await client.listPublisherVolumes(publisherId, {
+    sort: 'name:asc',
+  });
+
+  publisherVolumeCache.set(cacheKey, {
+    expiresAt: Date.now() + CACHE_TTL_MS,
+    results: listed.results,
+  });
+
+  return listed.results;
+};
+
 const handleComicDiscoverList = async (
   req: Request,
   res: Response,
   next: NextFunction,
   cacheKey: string,
-  buildListOptions: (page: number) => ComicVineListVolumesOptions
+  fetchPage: (
+    client: ComicVineClient,
+    page: number
+  ) => Promise<{ results: SearchResult[]; totalResults: number }>
 ) => {
   const apiKey = getComicVineApiKey();
 
@@ -63,8 +110,11 @@ const handleComicDiscoverList = async (
     }
 
     const client = new ComicVineClient(apiKey);
-    const listed = await client.listVolumes(buildListOptions(page));
-    const totalPages = Math.max(1, Math.ceil(listed.totalResults / PER_PAGE));
+    const listed = await fetchPage(client, page);
+    const totalPages = Math.max(
+      1,
+      Math.ceil(listed.totalResults / PER_PAGE)
+    );
 
     const media = await Media.getRelatedMediaByMetadataId(
       req.user,
@@ -102,11 +152,18 @@ const handleComicDiscoverList = async (
 };
 
 discoverComicsRoutes.get('/comics/recent', (req, res, next) =>
-  handleComicDiscoverList(req, res, next, 'recent', (page) => ({
-    sort: 'date_added:desc',
-    limit: PER_PAGE,
-    offset: (page - 1) * PER_PAGE,
-  }))
+  handleComicDiscoverList(req, res, next, 'recent', async (client, page) => {
+    const listed = await client.listVolumes({
+      sort: 'date_added:desc',
+      limit: PER_PAGE,
+      offset: (page - 1) * PER_PAGE,
+    });
+
+    return {
+      results: listed.results,
+      totalResults: listed.totalResults,
+    };
+  })
 );
 
 discoverComicsRoutes.get('/comics/publisher/:publisherId', (req, res, next) => {
@@ -117,12 +174,11 @@ discoverComicsRoutes.get('/comics/publisher/:publisherId', (req, res, next) => {
     res,
     next,
     `publisher:${publisherId}`,
-    (page) => ({
-      filter: `publisher:${publisherId}`,
-      sort: 'name:asc',
-      limit: PER_PAGE,
-      offset: (page - 1) * PER_PAGE,
-    })
+    async (client, page) => {
+      const allResults = await getPublisherVolumeResults(client, publisherId);
+
+      return paginateResults(allResults, page);
+    }
   );
 });
 

@@ -63,3 +63,9 @@ export interface ComicVineVolumesListResponse {
   status_code: number;
   results: ComicVineSearchVolumeResult[];
 }
+
+export interface ComicVinePublisherDetail {
+  id: number;
+  name: string;
+  volumes?: ComicVineSearchVolumeResult[];
+}

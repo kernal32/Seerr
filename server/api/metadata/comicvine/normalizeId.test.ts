@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  comicVinePublisherApiId,
   comicVineVolumeApiId,
   normalizeComicVinePublisherId,
   normalizeComicVineVolumeId,
@@ -20,5 +21,6 @@ describe('normalizeComicVineVolumeId', () => {
   it('normalizes publisher ids', () => {
     assert.equal(normalizeComicVinePublisherId('4010-31'), '31');
     assert.equal(normalizeComicVinePublisherId('31'), '31');
+    assert.equal(comicVinePublisherApiId('31'), '4010-31');
   });
 });

@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-30 — fix: comic publisher discover sliders returned identical lists
+
+- Files: `server/api/metadata/comicvine/{client,constants,normalizeId,types,client.test,normalizeId.test}.ts`, `server/routes/discoverComics.ts`
+- DoD: `pnpm typecheck` pass; comicvine tests 6/6 pass
+- Notes: Comic Vine ignores `filter=publisher:{id}` on `/volumes/`; publisher sliders now fetch `/publisher/4010-{id}/` volumes and paginate in memory with 60-min cache
+
 ## 2026-05-30 — Phase 4: Comic Vine discover sliders
 
 - Files: `server/api/metadata/comicvine/{client,constants,getComicVineApiKey,types,client.test,getComicVineApiKey.test}.ts`, `server/routes/discoverComics.ts`, `server/routes/discover.ts`, `server/constants/discover.ts`, `src/components/Discover/{ComicDiscoverSliders,DiscoverReadingMedia,ReadingMediaSlider,index,constants,DiscoverSliderEdit}.tsx`, `src/components/TitleCard/ReadingTitleCard.tsx`, `seerr-api.yml`, `tasks/todo.md`

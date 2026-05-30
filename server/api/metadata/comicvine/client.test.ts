@@ -65,36 +65,6 @@ describe('ComicVineClient.listVolumes', () => {
     });
   });
 
-  it('includes publisher filter when provided', async () => {
-    let capturedParams: Record<string, unknown> | undefined;
-
-    mock.method(axios, 'get', async (_url: string, config?: { params?: Record<string, unknown> }) => {
-      capturedParams = config?.params;
-
-      return {
-        data: {
-          error: 'OK',
-          limit: 20,
-          offset: 0,
-          number_of_page_results: 0,
-          number_of_total_results: 0,
-          status_code: 1,
-          results: [],
-        },
-      };
-    });
-
-    const client = new ComicVineClient('test-api-key');
-    await client.listVolumes({
-      filter: 'publisher:31',
-      sort: 'name:asc',
-      limit: 20,
-      offset: 0,
-    });
-
-    assert.equal(capturedParams?.filter, 'publisher:31');
-  });
-
   it('throws when Comic Vine returns a non-success status_code', async () => {
     mock.method(axios, 'get', async () => ({
       data: {
@@ -115,5 +85,49 @@ describe('ComicVineClient.listVolumes', () => {
         }),
       /Invalid API Key/
     );
+  });
+});
+
+describe('ComicVineClient.listPublisherVolumes', () => {
+  beforeEach(() => {
+    mock.restoreAll();
+  });
+
+  it('loads volumes from the publisher resource and sorts by name', async () => {
+    let capturedUrl: string | undefined;
+
+    mock.method(axios, 'get', async (url: string) => {
+      capturedUrl = url;
+
+      return {
+        data: {
+          error: 'OK',
+          status_code: 1,
+          results: {
+            id: 31,
+            name: 'Marvel',
+            volumes: [
+              { id: 200, name: 'X-Men' },
+              { id: 100, name: 'The Amazing Spider-Man' },
+            ],
+          },
+        },
+      };
+    });
+
+    const client = new ComicVineClient('test-api-key');
+    const result = await client.listPublisherVolumes(31);
+
+    assert.equal(
+      capturedUrl,
+      'https://comicvine.gamespot.com/api/publisher/4010-31/'
+    );
+    assert.equal(result.totalResults, 2);
+    assert.deepEqual(
+      result.results.map((volume) => volume.title),
+      ['The Amazing Spider-Man', 'X-Men']
+    );
+    assert.equal(result.results[0]?.subtitle, 'Marvel');
+    assert.equal(result.results[0]?.foreignAuthorId, '31');
   });
 });
