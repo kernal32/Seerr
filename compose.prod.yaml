@@ -1,7 +1,7 @@
 ﻿services:
   seerr:
     build:
-      context: https://github.com/kernal32/Seerr.git#main
+      context: https://github.com/kernal32/Seerr.git#develop
       dockerfile: Dockerfile
       args:
         COMMIT_TAG: private

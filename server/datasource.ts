@@ -55,7 +55,7 @@ const testConfig: DataSourceOptions = {
   logging: boolFromEnv('DB_LOG_QUERIES'),
   entities: ['server/entity/**/*.ts'],
   migrations: ['server/migration/sqlite/**/*.ts'],
-  subscribers: ['server/subscriber/**/*.ts'],
+  subscribers: ['server/subscriber/*Subscriber.ts'],
 };
 
 const devConfig: DataSourceOptions = {
@@ -69,7 +69,7 @@ const devConfig: DataSourceOptions = {
   enableWAL: true,
   entities: ['server/entity/**/*.ts'],
   migrations: ['server/migration/sqlite/**/*.ts'],
-  subscribers: ['server/subscriber/**/*.ts'],
+  subscribers: ['server/subscriber/*Subscriber.ts'],
 };
 
 const prodConfig: DataSourceOptions = {
@@ -83,7 +83,7 @@ const prodConfig: DataSourceOptions = {
   enableWAL: true,
   entities: ['dist/entity/**/*.js'],
   migrations: ['dist/migration/sqlite/**/*.js'],
-  subscribers: ['dist/subscriber/**/*.js'],
+  subscribers: ['dist/subscriber/*Subscriber.js'],
 };
 
 const postgresDevConfig: DataSourceOptions = {
@@ -102,7 +102,7 @@ const postgresDevConfig: DataSourceOptions = {
   logging: boolFromEnv('DB_LOG_QUERIES'),
   entities: ['server/entity/**/*.ts'],
   migrations: ['server/migration/postgres/**/*.ts'],
-  subscribers: ['server/subscriber/**/*.ts'],
+  subscribers: ['server/subscriber/*Subscriber.ts'],
 };
 
 const postgresProdConfig: DataSourceOptions = {
@@ -121,7 +121,7 @@ const postgresProdConfig: DataSourceOptions = {
   logging: boolFromEnv('DB_LOG_QUERIES'),
   entities: ['dist/entity/**/*.js'],
   migrations: ['dist/migration/postgres/**/*.js'],
-  subscribers: ['dist/subscriber/**/*.js'],
+  subscribers: ['dist/subscriber/*Subscriber.js'],
 };
 
 export const isPgsql = process.env.DB_TYPE === 'postgres';
