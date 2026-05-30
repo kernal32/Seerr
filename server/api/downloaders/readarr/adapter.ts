@@ -2,6 +2,7 @@ import { isBinderyMetadataSearchUnavailable } from '@server/api/downloaders/bind
 import type { BinderyBookSearchResult } from '@server/api/downloaders/bindery/types';
 import { buildReadarrAddPayload } from '@server/api/downloaders/readarr/buildAddPayload';
 import ReadarrClient from '@server/api/downloaders/readarr/client';
+import { isBookshelfDuplicateEditionError } from '@server/api/downloaders/readarr/formatClientError';
 import {
   buildReadarrLookupTerms,
   pickReadarrLookupBook,
@@ -196,6 +197,40 @@ export class ReadarrAdapter implements DownloaderAdapter {
     return null;
   }
 
+  private async resolveExistingLibraryBook(
+    metadataId: string,
+    title: string | undefined,
+    foreignAuthorId: string | undefined,
+    foreignBookId: string
+  ): Promise<AddResult | null> {
+    const lookupMatch = await this.resolveLookupBook(
+      metadataId,
+      title,
+      foreignAuthorId
+    );
+
+    if (lookupMatch?.id) {
+      return {
+        externalServiceId: lookupMatch.id,
+        externalServiceSlug: lookupMatch.foreignBookId,
+      };
+    }
+
+    const libraryBooks = await this.client.getLibraryBooks();
+    const libraryMatch = libraryBooks.find(
+      (book) => book.foreignBookId === foreignBookId
+    );
+
+    if (libraryMatch) {
+      return {
+        externalServiceId: libraryMatch.id,
+        externalServiceSlug: libraryMatch.foreignBookId,
+      };
+    }
+
+    return null;
+  }
+
   public async addToLibrary(payload: AddPayload): Promise<AddResult> {
     const qualityProfileId = payload.profileId ?? this.settings.activeProfileId;
     const metadataProfileId = this.settings.activeMetadataProfileId;
@@ -237,12 +272,33 @@ export class ReadarrAdapter implements DownloaderAdapter {
       fallbackAuthorName: payload.authorName,
     });
 
-    const added = await this.client.addBook(addPayload);
+    try {
+      const added = await this.client.addBook(addPayload);
 
-    return {
-      externalServiceId: added.id,
-      externalServiceSlug: added.foreignBookId,
-    };
+      return {
+        externalServiceId: added.id,
+        externalServiceSlug: added.foreignBookId,
+      };
+    } catch (error) {
+      if (!isBookshelfDuplicateEditionError(error)) {
+        throw error;
+      }
+
+      const existing = await this.resolveExistingLibraryBook(
+        payload.metadataId,
+        payload.title,
+        payload.foreignAuthorId,
+        lookup.foreignBookId
+      );
+
+      if (existing) {
+        return existing;
+      }
+
+      throw new Error(
+        `Bookshelf already has this edition but Bookarr could not resolve the existing library book for "${payload.metadataId}". Open the title in Bookshelf and retry the request.`
+      );
+    }
   }
 }
 

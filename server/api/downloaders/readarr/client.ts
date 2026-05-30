@@ -60,6 +60,10 @@ class ReadarrClient extends ExternalAPI {
     return this.get<ReadarrBook>(`/book/${id}`);
   }
 
+  public getLibraryBooks(): Promise<ReadarrBook[]> {
+    return this.get<ReadarrBook[]>('/book');
+  }
+
   public lookupBooks(term: string): Promise<ReadarrLookupBook[]> {
     return this.get<ReadarrLookupBook[]>('/book/lookup', {
       params: { term },

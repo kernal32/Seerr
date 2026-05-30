@@ -1,5 +1,19 @@
 import axios from 'axios';
 
+const DUPLICATE_EDITION_SIGNATURE =
+  'UNIQUE constraint failed: Editions.ForeignEditionId';
+
+export const isBookshelfDuplicateEditionError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.includes('HTTP 409') &&
+    error.message.includes(DUPLICATE_EDITION_SIGNATURE)
+  );
+};
+
 export const formatReadarrClientError = (error: unknown): Error => {
   if (axios.isAxiosError(error)) {
     const status = error.response?.status;

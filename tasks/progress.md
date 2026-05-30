@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-30 — phase6: idempotent Bookshelf duplicate-edition recovery
+
+- Files: `server/api/downloaders/readarr/{adapter,adapter.test,client,formatClientError,formatClientError.test}.ts`
+- DoD: `pnpm typecheck:server` pass, adapter conflict tests pass (7 new tests)
+- Notes: Treat HTTP 409 `Editions.ForeignEditionId` as already-in-library; resolve existing book via lookup id or GET /book fallback; retry failed requests without DB rollback
+
 ## 2026-05-28 — phase6: Book availability tracking (Bookshelf poll + request completion)
 
 - Files: `server/lib/scanners/readarr/{index,processBookStatus,processBookStatus.test}.ts`, `server/api/downloaders/readarr/types.ts`, `server/subscriber/{MediaSubscriber,MediaSubscriber.test}.ts`, `server/job/schedule.ts`, `server/lib/settings/index.ts`, `src/components/ReadingDetails/index.tsx`, `tasks/todo.md`
