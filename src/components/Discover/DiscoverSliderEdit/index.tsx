@@ -173,6 +173,8 @@ const DiscoverSliderEdit = ({
         return intl.formatMessage(sliderTitles.popularbooks);
       case DiscoverSliderType.POPULAR_AUDIOBOOKS:
         return intl.formatMessage(sliderTitles.popularaudiobooks);
+      case DiscoverSliderType.POPULAR_COMICS:
+        return intl.formatMessage(sliderTitles.popularcomics);
       default:
         return 'Unknown Slider';
     }

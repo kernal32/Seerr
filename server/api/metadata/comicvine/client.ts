@@ -1,7 +1,10 @@
 import type { MediaDetails, SearchResult } from '@server/api/downloaders/types';
 import { MediaType } from '@server/constants/media';
 import axios from 'axios';
-import { COMICVINE_API_BASE } from './constants';
+import {
+  COMICVINE_API_BASE,
+  COMICVINE_VOLUME_FIELD_LIST,
+} from './constants';
 import {
   comicVineVolumeApiId,
   normalizeComicVinePublisherId,
@@ -12,7 +15,20 @@ import type {
   ComicVineImage,
   ComicVineSearchResponse,
   ComicVineVolume,
+  ComicVineVolumesListResponse,
 } from './types';
+
+export interface ComicVineListVolumesOptions {
+  filter?: string;
+  sort: string;
+  limit: number;
+  offset: number;
+}
+
+export interface ComicVineListVolumesResult {
+  results: SearchResult[];
+  totalResults: number;
+}
 import { formatComicVineDescription } from './formatDescription';
 
 const pickCoverUrl = (image?: ComicVineImage): string | undefined =>
@@ -46,6 +62,35 @@ class ComicVineClient {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey.trim();
+  }
+
+  public async listVolumes(
+    options: ComicVineListVolumesOptions
+  ): Promise<ComicVineListVolumesResult> {
+    const response = await axios.get<ComicVineVolumesListResponse>(
+      `${COMICVINE_API_BASE}/volumes/`,
+      {
+        params: {
+          api_key: this.apiKey,
+          format: 'json',
+          field_list: COMICVINE_VOLUME_FIELD_LIST,
+          sort: options.sort,
+          limit: options.limit,
+          offset: options.offset,
+          ...(options.filter ? { filter: options.filter } : {}),
+        },
+        timeout: 15000,
+      }
+    );
+
+    if (response.data.status_code !== 1) {
+      throw new Error(response.data.error || 'Comic Vine volume list failed');
+    }
+
+    return {
+      results: (response.data.results ?? []).map(mapVolumeToSearchResult),
+      totalResults: response.data.number_of_total_results ?? 0,
+    };
   }
 
   public async search(term: string, limit = 20): Promise<SearchResult[]> {

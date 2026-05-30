@@ -6971,6 +6971,43 @@ paths:
           description: Paginated trending audiobook results
         '503':
           description: Hardcover API token not configured
+  /discover/comics/recent:
+    get:
+      summary: Recently added comic series from Comic Vine
+      tags:
+        - comics
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated recently added comic volume results
+        '503':
+          description: Comic Vine API key not configured
+  /discover/comics/publisher/{publisherId}:
+    get:
+      summary: Comic series by publisher from Comic Vine
+      tags:
+        - comics
+      parameters:
+        - in: path
+          name: publisherId
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Paginated comic volume results for the publisher
+        '503':
+          description: Comic Vine API key not configured
   /discover/books/nyt/{listSlug}:
     get:
       summary: NYT Best Sellers list for books

@@ -15,6 +15,7 @@ import TvGenreSlider from '@app/components/Discover/TvGenreSlider';
 import { sliderTitles } from '@app/components/Discover/constants';
 import MediaSlider from '@app/components/MediaSlider';
 import ReadingDiscoverSliders from '@app/components/Discover/ReadingDiscoverSliders';
+import ComicDiscoverSliders from '@app/components/Discover/ComicDiscoverSliders';
 import { encodeURIExtraParams } from '@app/hooks/useDiscover';
 import useSettings from '@app/hooks/useSettings';
 import useToasts from '@app/hooks/useToasts';
@@ -418,6 +419,11 @@ const Discover = () => {
                 mediaSubtype="audiobook"
                 mediaType={MediaType.AUDIOBOOK}
               />
+            ) : null;
+            break;
+          case DiscoverSliderType.POPULAR_COMICS:
+            sliderComponent = currentSettings.comicsEnabled ? (
+              <ComicDiscoverSliders discoverPath="/discover/comics" />
             ) : null;
             break;
         }

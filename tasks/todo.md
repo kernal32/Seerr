@@ -32,6 +32,7 @@
 ## Phase 4 — Comics
 
 - [x] Mylar3Adapter + Comic Vine metadata + comic discover/detail/request flow
+- [x] Comic Vine discover sliders (recent + Marvel/DC/Image) on `/discover/comics` and home discover
 
 ## Phase 5 — Magazines
 

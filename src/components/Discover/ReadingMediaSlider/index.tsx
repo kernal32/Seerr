@@ -24,7 +24,7 @@ interface ReadingMediaSliderProps {
   url: string;
   linkUrl?: string;
   sliderKey: string;
-  mediaType: typeof MediaType.BOOK | typeof MediaType.AUDIOBOOK;
+  mediaType: typeof MediaType.BOOK | typeof MediaType.AUDIOBOOK | typeof MediaType.COMIC;
   hideWhenEmpty?: boolean;
 }
 

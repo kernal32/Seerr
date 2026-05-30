@@ -10,14 +10,24 @@ interface ReadingTitleCardProps {
   title: string;
   subtitle?: string;
   image?: string;
-  mediaType: MediaType.BOOK | MediaType.AUDIOBOOK;
+  mediaType: MediaType.BOOK | MediaType.AUDIOBOOK | MediaType.COMIC;
   status?: MediaStatus;
   foreignAuthorId?: string;
 }
 
 const detailPathForMediaType = (
-  mediaType: MediaType.BOOK | MediaType.AUDIOBOOK
-): string => (mediaType === MediaType.AUDIOBOOK ? '/audiobook' : '/book');
+  mediaType: MediaType.BOOK | MediaType.AUDIOBOOK | MediaType.COMIC
+): string => {
+  if (mediaType === MediaType.AUDIOBOOK) {
+    return '/audiobook';
+  }
+
+  if (mediaType === MediaType.COMIC) {
+    return '/comic';
+  }
+
+  return '/book';
+};
 
 const ReadingTitleCard = ({
   id,
@@ -34,7 +44,10 @@ const ReadingTitleCard = ({
     <Link
       href={{
         pathname: `${detailPath}/${encodeURIComponent(id)}`,
-        query: foreignAuthorId ? { authorId: foreignAuthorId } : {},
+        query:
+          mediaType !== MediaType.COMIC && foreignAuthorId
+            ? { authorId: foreignAuthorId }
+            : {},
       }}
       className="relative block w-36 sm:w-36 md:w-44"
     >

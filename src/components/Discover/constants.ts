@@ -90,8 +90,13 @@ export const sliderTitles = defineMessages('components.Discover', {
   tmdbtvstreamingservices: 'TMDB TV Streaming Services',
   popularbooks: 'Popular Books',
   popularaudiobooks: 'Popular Audiobooks',
+  popularcomics: 'Popular Comics',
   trendingbooks: 'Trending Books',
   trendingaudiobooks: 'Trending Audiobooks',
+  recentComics: 'Recently Added Comics',
+  marvelComics: 'Marvel',
+  dcComics: 'DC Comics',
+  imageComics: 'Image Comics',
 });
 
 export const QueryFilterOptions = z.object({

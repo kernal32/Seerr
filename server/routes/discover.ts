@@ -26,6 +26,7 @@ import { Router } from 'express';
 import { sortBy } from 'lodash';
 import { z } from 'zod';
 import discoverReadingRoutes from './discoverReading';
+import discoverComicsRoutes from './discoverComics';
 
 export const createTmdbWithRegionLanguage = (user?: User): TheMovieDb => {
   const settings = getSettings();
@@ -984,5 +985,6 @@ discoverRoutes.get<Record<string, unknown>, WatchlistResponse>(
 );
 
 discoverRoutes.use(discoverReadingRoutes);
+discoverRoutes.use(discoverComicsRoutes);
 
 export default discoverRoutes;

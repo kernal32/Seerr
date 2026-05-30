@@ -2,6 +2,7 @@ import Button from '@app/components/Common/Button';
 import Header from '@app/components/Common/Header';
 import PageTitle from '@app/components/Common/PageTitle';
 import DiscoverReadingPlaceholder from '@app/components/Discover/DiscoverReadingPlaceholder';
+import ComicDiscoverSliders from '@app/components/Discover/ComicDiscoverSliders';
 import ReadingDiscoverSliders from '@app/components/Discover/ReadingDiscoverSliders';
 import ErrorPage from '@app/pages/_error';
 import globalMessages from '@app/i18n/globalMessages';
@@ -177,6 +178,9 @@ const DiscoverReadingMedia = ({
             </li>
           ))}
         </ul>
+      )}
+      {!query && mediaType === MediaType.COMIC && (
+        <ComicDiscoverSliders discoverPath={discoverPath} />
       )}
       {!query && mediaType !== MediaType.COMIC && (
         <ReadingDiscoverSliders

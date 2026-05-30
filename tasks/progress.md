@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-05-30 — Phase 4: Comic Vine discover sliders
+
+- Files: `server/api/metadata/comicvine/{client,constants,getComicVineApiKey,types,client.test,getComicVineApiKey.test}.ts`, `server/routes/discoverComics.ts`, `server/routes/discover.ts`, `server/constants/discover.ts`, `src/components/Discover/{ComicDiscoverSliders,DiscoverReadingMedia,ReadingMediaSlider,index,constants,DiscoverSliderEdit}.tsx`, `src/components/TitleCard/ReadingTitleCard.tsx`, `seerr-api.yml`, `tasks/todo.md`
+- DoD: `pnpm typecheck` pass; `pnpm test` pass (5/5 comicvine discover tests); lint pre-existing failures only (not in touched files)
+- Notes: Four Comic Vine browse sliders (Recently Added, Marvel, DC, Image); 60-min server cache; `POPULAR_COMICS` home discover block; uses comic downloader Comic Vine key
+
 ## 2026-05-30 — Phase 4: Comics (Mylar3 + Comic Vine)
 
 - Files: `server/api/metadata/comicvine/*`, `server/api/downloaders/mylar3/*`, `server/api/downloaders/factory.ts`, `server/routes/comic.ts`, `server/routes/reading/createComicMediaRoutes.ts`, `server/routes/settings/comicDownloader.ts`, `server/subscriber/MediaRequestSubscriber.ts`, `server/entity/MediaRequest.ts`, `server/entity/Media.ts`, `server/subscriber/MediaSubscriber.ts`, `server/lib/scanners/mylar3/*`, `server/job/schedule.ts`, `server/routes/media.ts`, `src/components/Discover/DiscoverComics/*`, `src/components/ComicDetails/*`, `src/components/Settings/ComicDownloaderModal/*`, `src/components/Settings/SettingsServices.tsx`, `src/components/ReadingDetails/index.tsx`, `src/components/ManageReadingSlideOver/index.tsx`, `seerr-api.yml`, `tasks/todo.md`
