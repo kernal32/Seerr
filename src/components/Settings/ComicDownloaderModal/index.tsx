@@ -3,6 +3,7 @@ import SensitiveInput from '@app/components/Common/SensitiveInput';
 import useToasts from '@app/hooks/useToasts';
 import globalMessages from '@app/i18n/globalMessages';
 import defineMessages from '@app/utils/defineMessages';
+import { Transition } from '@headlessui/react';
 import type { ComicDownloaderSettings } from '@server/lib/settings';
 import axios from 'axios';
 import { Field, Formik } from 'formik';
@@ -173,14 +174,25 @@ const ComicDownloaderModal = ({
   };
 
   return (
-    <Modal
-      onCancel={onClose}
-      title={
-        downloader
-          ? intl.formatMessage(messages.editServer)
-          : intl.formatMessage(messages.createServer)
-      }
+    <Transition
+      as="div"
+      appear
+      show
+      enter="transition-opacity ease-in-out duration-300"
+      enterFrom="opacity-0"
+      enterTo="opacity-100"
+      leave="transition-opacity ease-in-out duration-300"
+      leaveFrom="opacity-100"
+      leaveTo="opacity-0"
     >
+      <Modal
+        onCancel={onClose}
+        title={
+          downloader
+            ? intl.formatMessage(messages.editServer)
+            : intl.formatMessage(messages.createServer)
+        }
+      >
       <Formik
         initialValues={initialValues}
         validationSchema={schema}
@@ -370,7 +382,8 @@ const ComicDownloaderModal = ({
           </form>
         )}
       </Formik>
-    </Modal>
+      </Modal>
+    </Transition>
   );
 };
 
