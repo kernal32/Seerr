@@ -10,6 +10,7 @@ import { getSettings } from '@server/lib/settings';
 import logger from '@server/logger';
 import { DbAwareColumn, resolveDbType } from '@server/utils/DbColumnHelper';
 import { AfterDate } from '@server/utils/dateHelpers';
+import { resolveQuotaNumber } from '@server/utils/quota';
 import bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 import { nanoid } from 'nanoid';
@@ -280,9 +281,12 @@ export class User {
     });
 
     const movieQuotaLimit = !canBypass
-      ? (this.movieQuotaLimit ?? defaultQuotas.movie.quotaLimit)
+      ? resolveQuotaNumber(this.movieQuotaLimit, defaultQuotas.movie.quotaLimit)
       : 0;
-    const movieQuotaDays = this.movieQuotaDays ?? defaultQuotas.movie.quotaDays;
+    const movieQuotaDays = resolveQuotaNumber(
+      this.movieQuotaDays,
+      defaultQuotas.movie.quotaDays
+    );
 
     // Count movie requests made during quota period
     const movieDate = new Date();
@@ -304,9 +308,12 @@ export class User {
       : 0;
 
     const tvQuotaLimit = !canBypass
-      ? (this.tvQuotaLimit ?? defaultQuotas.tv.quotaLimit)
+      ? resolveQuotaNumber(this.tvQuotaLimit, defaultQuotas.tv.quotaLimit)
       : 0;
-    const tvQuotaDays = this.tvQuotaDays ?? defaultQuotas.tv.quotaDays;
+    const tvQuotaDays = resolveQuotaNumber(
+      this.tvQuotaDays,
+      defaultQuotas.tv.quotaDays
+    );
 
     // Count tv season requests made during quota period
     const tvDate = new Date();

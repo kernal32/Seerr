@@ -1,6 +1,7 @@
 import { MediaServerType } from '@server/constants/server';
 import dataSource, { getRepository } from '@server/datasource';
 import Media from '@server/entity/Media';
+import cleanCorruptedUserQuotas from '@server/lib/cleanCorruptedUserQuotas';
 import Settings from '@server/lib/settings';
 import logger from '@server/logger';
 import type { MigrationInterface, MixedList, QueryRunner } from 'typeorm';
@@ -90,25 +91,7 @@ const checkOverseerrMerge = async (): Promise<boolean> => {
   }
 
   // Fix corrupted quota values carried over from Overseerr
-  try {
-    await dbConnection.query(
-      `UPDATE user SET movieQuotaLimit = NULL WHERE typeof(movieQuotaLimit) = 'text'`
-    );
-    await dbConnection.query(
-      `UPDATE user SET movieQuotaDays = NULL WHERE typeof(movieQuotaDays) = 'text'`
-    );
-    await dbConnection.query(
-      `UPDATE user SET tvQuotaLimit = NULL WHERE typeof(tvQuotaLimit) = 'text'`
-    );
-    await dbConnection.query(
-      `UPDATE user SET tvQuotaDays = NULL WHERE typeof(tvQuotaDays) = 'text'`
-    );
-  } catch (error) {
-    logger.error('Failed to clean up corrupted quota values', {
-      label: 'Seerr Migration',
-      error: error.message,
-    });
-  }
+  await cleanCorruptedUserQuotas();
 
   // MediaStatus.Blacklisted was added before MediaStatus.Deleted in Jellyseerr
   try {

@@ -6,6 +6,7 @@ import { Session } from '@server/entity/Session';
 import { User } from '@server/entity/User';
 import { initI18n } from '@server/i18n';
 import { startJobs } from '@server/job/schedule';
+import cleanCorruptedUserQuotas from '@server/lib/cleanCorruptedUserQuotas';
 import notificationManager from '@server/lib/notifications';
 import DiscordAgent from '@server/lib/notifications/agents/discord';
 import EmailAgent from '@server/lib/notifications/agents/email';
@@ -79,6 +80,8 @@ app
         await dbConnection.query('PRAGMA foreign_keys=ON');
       }
     }
+
+    await cleanCorruptedUserQuotas();
 
     // Load Settings
     const settings = await getSettings().load();

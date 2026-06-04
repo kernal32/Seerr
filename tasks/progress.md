@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-06-04 — fix(server): harden user quota parsing and corrupted DB cleanup
+
+- Files: `server/utils/quota.ts`, `server/lib/cleanCorruptedUserQuotas.ts`, `server/entity/User.ts`, `server/index.ts`, `server/lib/overseerrMerge.ts`, `server/test/utils/quota.test.ts`, `server/test/entity/User.quota.test.ts`, `scripts/fix-corrupted-quotas.sh`
+- DoD: `pnpm typecheck` pass; quota tests 7/7 pass; `docker build -t seerr-home:local .` pass; ReadLints on touched files clean
+- Notes: Root cause of profile showing `movieQuotaDays`/`movieQuotaLimit` literals is corrupted quota values (Overseerr migration) passed through to i18n. `parseQuotaNumber`/`resolveQuotaNumber` coerce safely; startup cleanup NULLs text-typed SQLite quota columns. Production: rebuild image on vm-docker-01, redeploy, re-save Settings → Users global quotas if needed; use `scripts/fix-corrupted-quotas.sh` for manual DB cleanup.
+
 ## 2026-05-30 — fix: comic publisher discover sliders returned identical lists
 
 - Files: `server/api/metadata/comicvine/{client,constants,normalizeId,types,client.test,normalizeId.test}.ts`, `server/routes/discoverComics.ts`
