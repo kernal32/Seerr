@@ -562,8 +562,16 @@ export class MediaRequestSubscriber implements EntitySubscriberInterface<MediaRe
       media.externalServiceId = result.externalServiceId;
       media.externalServiceSlug = result.externalServiceSlug;
       media.serviceId = downloaderSettings.id;
-      media.status = MediaStatus.PROCESSING;
+      media.status = result.alreadyAvailable
+        ? MediaStatus.AVAILABLE
+        : MediaStatus.PROCESSING;
       await mediaRepository.save(media);
+
+      if (result.alreadyAvailable) {
+        const requestRepository = getRepository(MediaRequest);
+        entity.status = MediaRequestStatus.COMPLETED;
+        await requestRepository.save(entity);
+      }
 
       logger.info('Sent request to book downloader', {
         label: 'Media Request',

@@ -1,6 +1,9 @@
 import { isBinderyMetadataSearchUnavailable } from '@server/api/downloaders/bindery/metadataErrors';
 import type { BinderyBookSearchResult } from '@server/api/downloaders/bindery/types';
-import { buildReadarrAddPayload } from '@server/api/downloaders/readarr/buildAddPayload';
+import {
+  buildReadarrAddPayload,
+  buildReadarrUpdateFromExisting,
+} from '@server/api/downloaders/readarr/buildAddPayload';
 import ReadarrClient from '@server/api/downloaders/readarr/client';
 import { isBookshelfDuplicateEditionError } from '@server/api/downloaders/readarr/formatClientError';
 import {
@@ -11,6 +14,7 @@ import type {
   ReadarrBookSearchResult,
   ReadarrLookupBook,
 } from '@server/api/downloaders/readarr/types';
+import { hasBookFiles } from '@server/lib/scanners/readarr/processBookStatus';
 import type {
   AddPayload,
   AddResult,
@@ -231,6 +235,48 @@ export class ReadarrAdapter implements DownloaderAdapter {
     return null;
   }
 
+  private async ensureExistingLibraryBookActionable(
+    bookId: number,
+    lookup: ReadarrLookupBook,
+    options: {
+      qualityProfileId: number;
+      metadataProfileId: number;
+      rootFolderPath: string;
+      searchOnAdd: boolean;
+      foreignAuthorId?: string;
+      authorName?: string;
+    }
+  ): Promise<AddResult> {
+    const book = await this.client.getBook(bookId);
+
+    if (hasBookFiles(book)) {
+      return {
+        externalServiceId: book.id,
+        externalServiceSlug: book.foreignBookId,
+        alreadyAvailable: true,
+      };
+    }
+
+    const updatePayload = buildReadarrUpdateFromExisting(book, lookup, {
+      qualityProfileId: options.qualityProfileId,
+      metadataProfileId: options.metadataProfileId,
+      rootFolderPath: options.rootFolderPath,
+      fallbackForeignAuthorId: options.foreignAuthorId,
+      fallbackAuthorName: options.authorName,
+    });
+
+    await this.client.updateBook(updatePayload);
+
+    if (options.searchOnAdd) {
+      await this.client.bookSearch([bookId]);
+    }
+
+    return {
+      externalServiceId: book.id,
+      externalServiceSlug: book.foreignBookId,
+    };
+  }
+
   public async addToLibrary(payload: AddPayload): Promise<AddResult> {
     const qualityProfileId = payload.profileId ?? this.settings.activeProfileId;
     const metadataProfileId = this.settings.activeMetadataProfileId;
@@ -292,7 +338,18 @@ export class ReadarrAdapter implements DownloaderAdapter {
       );
 
       if (existing) {
-        return existing;
+        return this.ensureExistingLibraryBookActionable(
+          existing.externalServiceId,
+          lookup,
+          {
+            qualityProfileId,
+            metadataProfileId,
+            rootFolderPath,
+            searchOnAdd: payload.searchOnAdd ?? true,
+            foreignAuthorId: payload.foreignAuthorId,
+            authorName: payload.authorName,
+          }
+        );
       }
 
       throw new Error(

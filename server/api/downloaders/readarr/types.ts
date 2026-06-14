@@ -86,6 +86,16 @@ export interface ReadarrBookStatistics {
   sizeOnDisk?: number;
 }
 
+export interface ReadarrBookAuthor {
+  id?: number;
+  authorName: string;
+  foreignAuthorId: string;
+  monitored?: boolean;
+  qualityProfileId?: number;
+  metadataProfileId?: number;
+  rootFolderPath?: string;
+}
+
 export interface ReadarrBook {
   id: number;
   foreignBookId: string;
@@ -95,8 +105,6 @@ export interface ReadarrBook {
   releaseDate?: string;
   monitored?: boolean;
   statistics?: ReadarrBookStatistics;
-  author?: {
-    authorName: string;
-    foreignAuthorId: string;
-  };
+  editions?: ReadarrLookupEdition[];
+  author?: ReadarrBookAuthor;
 }

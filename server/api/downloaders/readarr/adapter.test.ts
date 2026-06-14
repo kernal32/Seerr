@@ -23,6 +23,18 @@ let addBookImpl: () => Promise<ReadarrAddBookResponse> = async () => ({
   title: 'Test Book',
 });
 let getLibraryBooksImpl: () => Promise<ReadarrBook[]> = async () => [];
+let getBookImpl: (id: number) => Promise<ReadarrBook> = async (id) => ({
+  id,
+  foreignBookId: '12345',
+  title: 'Test Book',
+  monitored: false,
+  statistics: { bookFileCount: 0 },
+});
+let updateBookImpl: (book: ReadarrBook) => Promise<ReadarrBook> = async (
+  book
+) => book;
+let bookSearchImpl: (bookIds: number[]) => Promise<void> = async () =>
+  undefined;
 let deleteBookImpl: (id: number, deleteFiles?: boolean) => Promise<void> =
   async () => undefined;
 
@@ -46,6 +58,30 @@ Object.defineProperty(ReadarrClient.prototype, 'getLibraryBooks', {
   set() {},
   get() {
     return async () => getLibraryBooksImpl();
+  },
+  configurable: true,
+});
+
+Object.defineProperty(ReadarrClient.prototype, 'getBook', {
+  set() {},
+  get() {
+    return async (id: number) => getBookImpl(id);
+  },
+  configurable: true,
+});
+
+Object.defineProperty(ReadarrClient.prototype, 'updateBook', {
+  set() {},
+  get() {
+    return async (book: ReadarrBook) => updateBookImpl(book);
+  },
+  configurable: true,
+});
+
+Object.defineProperty(ReadarrClient.prototype, 'bookSearch', {
+  set() {},
+  get() {
+    return async (bookIds: number[]) => bookSearchImpl(bookIds);
   },
   configurable: true,
 });
@@ -98,6 +134,104 @@ describe('ReadarrAdapter.addToLibrary duplicate edition recovery', () => {
       title: 'Test Book',
     });
     getLibraryBooksImpl = async () => [];
+    getBookImpl = async (id) => ({
+      id,
+      foreignBookId: '12345',
+      title: 'Test Book',
+      monitored: false,
+      statistics: { bookFileCount: 0 },
+      author: {
+        id: 10,
+        authorName: 'Author',
+        foreignAuthorId: 'author-1',
+        monitored: false,
+      },
+    });
+    updateBookImpl = async (book) => book;
+    bookSearchImpl = async () => undefined;
+  });
+
+  it('monitors and searches existing book when duplicate edition conflict occurs', async () => {
+    addBookImpl = async () => {
+      throw duplicateEditionError();
+    };
+
+    lookupBooksImpl = async () => [
+      {
+        id: 42,
+        foreignBookId: '12345',
+        title: 'Test Book',
+        foreignAuthorId: 'author-1',
+      },
+    ];
+
+    let searchedIds: number[] | undefined;
+    let updatedMonitored: boolean | undefined;
+    bookSearchImpl = async (bookIds) => {
+      searchedIds = bookIds;
+    };
+    updateBookImpl = async (book) => {
+      updatedMonitored = book.monitored;
+      return book;
+    };
+
+    const adapter = new ReadarrAdapter(baseSettings());
+    const result = await adapter.addToLibrary({
+      metadataId: 'hc:12345',
+      title: 'Test Book',
+      foreignAuthorId: 'author-1',
+      searchOnAdd: true,
+    });
+
+    assert.deepEqual(result, {
+      externalServiceId: 42,
+      externalServiceSlug: '12345',
+    });
+    assert.equal(updatedMonitored, true);
+    assert.deepEqual(searchedIds, [42]);
+  });
+
+  it('skips search when duplicate book already has files', async () => {
+    addBookImpl = async () => {
+      throw duplicateEditionError();
+    };
+
+    lookupBooksImpl = async () => [
+      {
+        id: 42,
+        foreignBookId: '12345',
+        title: 'Test Book',
+        foreignAuthorId: 'author-1',
+      },
+    ];
+
+    getBookImpl = async (id) => ({
+      id,
+      foreignBookId: '12345',
+      title: 'Test Book',
+      monitored: false,
+      statistics: { bookFileCount: 1 },
+    });
+
+    let searchCalled = false;
+    bookSearchImpl = async () => {
+      searchCalled = true;
+    };
+
+    const adapter = new ReadarrAdapter(baseSettings());
+    const result = await adapter.addToLibrary({
+      metadataId: 'hc:12345',
+      title: 'Test Book',
+      foreignAuthorId: 'author-1',
+      searchOnAdd: true,
+    });
+
+    assert.deepEqual(result, {
+      externalServiceId: 42,
+      externalServiceSlug: '12345',
+      alreadyAvailable: true,
+    });
+    assert.equal(searchCalled, false);
   });
 
   it('returns existing lookup id when Bookshelf reports duplicate edition conflict', async () => {

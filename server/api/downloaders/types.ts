@@ -34,6 +34,8 @@ export interface AddPayload {
 export interface AddResult {
   externalServiceId: number;
   externalServiceSlug: string;
+  /** Set when the book already has files in the downstream library. */
+  alreadyAvailable?: boolean;
 }
 
 export interface RemoveFromLibraryPayload {

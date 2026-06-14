@@ -37,8 +37,7 @@ class ReadarrScanner {
 
       const settings = getSettings();
       const downloaders = settings.bookDownloaders.filter(
-        (downloader) =>
-          downloader.syncEnabled && downloader.provider === 'readarr'
+        (downloader) => downloader.provider === 'readarr'
       );
 
       for (const server of downloaders) {

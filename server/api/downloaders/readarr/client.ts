@@ -60,6 +60,29 @@ class ReadarrClient extends ExternalAPI {
     return this.get<ReadarrBook>(`/book/${id}`);
   }
 
+  // Bookshelf/Readarr: PUT /api/v1/book/{id}
+  public async updateBook(book: ReadarrBook): Promise<ReadarrBook> {
+    try {
+      const response = await this.axios.put<ReadarrBook>(`/book/${book.id}`, book);
+
+      return response.data;
+    } catch (error) {
+      throw formatReadarrClientError(error);
+    }
+  }
+
+  // Bookshelf/Readarr: POST /api/v1/command — name BookSearch
+  public async bookSearch(bookIds: number[]): Promise<void> {
+    try {
+      await this.axios.post('/command', {
+        name: 'BookSearch',
+        bookIds,
+      });
+    } catch (error) {
+      throw formatReadarrClientError(error);
+    }
+  }
+
   public getLibraryBooks(): Promise<ReadarrBook[]> {
     return this.get<ReadarrBook[]>('/book');
   }

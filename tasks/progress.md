@@ -2,6 +2,12 @@
 
 Newest entries at the top.
 
+## 2026-06-11 — fix(downloaders): Bookshelf duplicate edition monitor+search and status scan
+
+- Files: `server/api/downloaders/readarr/{adapter,client,buildAddPayload,types}.ts`, `server/api/downloaders/types.ts`, `server/lib/scanners/readarr/index.ts`, `server/subscriber/MediaRequestSubscriber.ts`, `server/api/downloaders/readarr/adapter.test.ts`
+- DoD: readarr adapter/scanner tests 16/16 pass; `pnpm typecheck:server` pass
+- Notes: Duplicate POST /book (409) now PUTs monitored=true, author monitored, and triggers BookSearch when searchOnAdd; books with files return alreadyAvailable. ReadarrScanner polls all readarr downloaders regardless of syncEnabled so PROCESSING→AVAILABLE works.
+
 ## 2026-06-04 — fix(server): harden user quota parsing and corrupted DB cleanup
 
 - Files: `server/utils/quota.ts`, `server/lib/cleanCorruptedUserQuotas.ts`, `server/entity/User.ts`, `server/index.ts`, `server/lib/overseerrMerge.ts`, `server/test/utils/quota.test.ts`, `server/test/entity/User.quota.test.ts`, `scripts/fix-corrupted-quotas.sh`

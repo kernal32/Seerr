@@ -1,4 +1,8 @@
-import type { ReadarrAddBookPayload, ReadarrLookupBook } from './types';
+import type {
+  ReadarrAddBookPayload,
+  ReadarrBook,
+  ReadarrLookupBook,
+} from './types';
 import { toBookshelfForeignId } from './normalizeForeignId';
 
 const resolveForeignAuthorId = (
@@ -129,4 +133,37 @@ export const buildReadarrAddPayload = (
   }
 
   return payload;
+};
+
+/** Apply monitor + profile settings to an existing Bookshelf library book. */
+export const buildReadarrUpdateFromExisting = (
+  book: ReadarrBook,
+  lookup: ReadarrLookupBook,
+  options: {
+    qualityProfileId: number;
+    metadataProfileId: number;
+    rootFolderPath: string;
+    fallbackForeignAuthorId?: string;
+    fallbackAuthorName?: string;
+  }
+): ReadarrBook => {
+  const addPayload = buildReadarrAddPayload(lookup, {
+    ...options,
+    searchOnAdd: false,
+  });
+
+  return {
+    ...book,
+    monitored: true,
+    editions: addPayload.editions ?? book.editions,
+    author: book.author
+      ? {
+          ...book.author,
+          monitored: true,
+          qualityProfileId: options.qualityProfileId,
+          metadataProfileId: options.metadataProfileId,
+          rootFolderPath: options.rootFolderPath,
+        }
+      : addPayload.author,
+  };
 };
